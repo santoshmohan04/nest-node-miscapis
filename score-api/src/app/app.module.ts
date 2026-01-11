@@ -1,13 +1,42 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GamesController } from './controllers/games.controller';
 import { EmployeeModule } from './employee.module';
+import { AuthModule } from './auth.module';
+import { ThreadsModule } from './threads.module';
+import { MessagesModule } from './messages.module';
+import { BotModule } from './bot.module';
 
 @Module({
-  imports: [MongooseModule.forRoot('mongodb+srv://tagore412:SivTckoe6rgEiDYv@cluster0.jebdamj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'), EmployeeModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+    EmployeeModule,
+    AuthModule,
+    ThreadsModule,
+    MessagesModule,
+    BotModule,
+  ],
   controllers: [AppController, GamesController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_PIPE,
+      useClass: ValidationPipe,
+    },
+  ],
 })
 export class AppModule {}
