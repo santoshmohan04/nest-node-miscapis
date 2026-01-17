@@ -4,12 +4,14 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from '../schema/user.schema';
+import { TokenBlacklist, TokenBlacklistDocument } from '../schema/token-blacklist.schema';
 import { RegisterDto, LoginDto, AuthResponseDto } from '../dto/auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(TokenBlacklist.name) private tokenBlacklistModel: Model<TokenBlacklistDocument>,
     private jwtService: JwtService,
   ) {}
 
@@ -83,5 +85,42 @@ export class AuthService {
 
   async updateFcmToken(userId: string, fcmToken: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(userId, { fcmToken });
+  }
+
+  async getCurrentUser(userId: string) {
+    const user = await this.userModel.findById(userId).select('-password');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      user: {
+        userId: user._id.toString(),
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    };
+  }
+
+  async blacklistToken(token: string): Promise<void> {
+    // Decode token to get expiration time
+    const decoded = this.jwtService.decode(token) as any;
+    if (!decoded || !decoded.exp) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    const expiresAt = new Date(decoded.exp * 1000);
+
+    // Add token to blacklist
+    await this.tokenBlacklistModel.create({
+      token,
+      expiresAt,
+    });
+  }
+
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklistedToken = await this.tokenBlacklistModel.findOne({ token });
+    return !!blacklistedToken;
   }
 }

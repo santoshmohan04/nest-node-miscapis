@@ -10,6 +10,7 @@ import { AuthModule } from './auth.module';
 import { ThreadsModule } from './threads.module';
 import { MessagesModule } from './messages.module';
 import { BotModule } from './bot.module';
+import { ExercisesModule } from './exercises.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { BotModule } from './bot.module';
     ThreadsModule,
     MessagesModule,
     BotModule,
+    ExercisesModule,
   ],
   controllers: [AppController, GamesController],
   providers: [

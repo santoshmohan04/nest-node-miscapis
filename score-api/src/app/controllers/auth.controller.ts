@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Patch } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Patch, Get } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
 import { RegisterDto, LoginDto } from '../dto/auth.dto';
 import { FcmTokenDto } from '../dto/bot.dto';
@@ -16,6 +16,25 @@ export class AuthController {
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getCurrentUser(@Request() req) {
+    return this.authService.getCurrentUser(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Request() req) {
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (token) {
+      await this.authService.blacklistToken(token);
+    }
+    
+    return { message: 'Logged out successfully' };
   }
 }
 
