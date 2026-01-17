@@ -11,6 +11,9 @@ import { ThreadsModule } from './threads.module';
 import { MessagesModule } from './messages.module';
 import { BotModule } from './bot.module';
 import { ExercisesModule } from './exercises.module';
+import { ProductModule } from './product.module';
+import { CartModule } from './cart.module';
+import { OrderModule } from './order.module';
 
 @Module({
   imports: [
@@ -18,10 +21,20 @@ import { ExercisesModule } from './exercises.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    // Default connection for 'test' database (existing functionality)
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+    // Named connection for 'estore' database (e-commerce functionality)
+    MongooseModule.forRootAsync({
+      connectionName: 'estore',
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_ESTORE_URI'),
       }),
       inject: [ConfigService],
     }),
@@ -31,6 +44,9 @@ import { ExercisesModule } from './exercises.module';
     MessagesModule,
     BotModule,
     ExercisesModule,
+    ProductModule,
+    CartModule,
+    OrderModule,
   ],
   controllers: [AppController, GamesController],
   providers: [

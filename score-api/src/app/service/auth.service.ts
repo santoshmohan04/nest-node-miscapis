@@ -123,4 +123,13 @@ export class AuthService {
     const blacklistedToken = await this.tokenBlacklistModel.findOne({ token });
     return !!blacklistedToken;
   }
+
+  async changePassword(userId: string, newPassword: string): Promise<void> {
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user's password
+    await this.userModel.findByIdAndUpdate(userId, { password: hashedPassword });
+  }
 }

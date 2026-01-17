@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Request, Patch, Get } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
-import { RegisterDto, LoginDto } from '../dto/auth.dto';
+import { RegisterDto, LoginDto, ChangePasswordDto } from '../dto/auth.dto';
 import { FcmTokenDto } from '../dto/bot.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
@@ -35,6 +35,13 @@ export class AuthController {
     }
     
     return { message: 'Logged out successfully' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
+    await this.authService.changePassword(req.user.userId, changePasswordDto.password);
+    return { message: 'Password changed successfully' };
   }
 }
 
