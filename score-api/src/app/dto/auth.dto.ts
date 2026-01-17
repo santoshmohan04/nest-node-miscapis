@@ -38,3 +38,10 @@ export class AuthResponseDto {
     lastName: string;
   };
 }
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  password: string;
+}
