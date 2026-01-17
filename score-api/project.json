@@ -19,6 +19,20 @@
           "buildTarget": "score-api:build:production"
         }
       }
+    },
+    "seed": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "score-api:build",
+        "buildTargetOptions": {
+          "outputPath": "dist/score-api"
+        }
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "score-api:build:development"
+        }
+      }
     }
   }
 }
