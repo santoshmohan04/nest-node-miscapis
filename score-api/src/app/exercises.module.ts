@@ -8,6 +8,7 @@ import {
   FinishedExercise,
   FinishedExerciseSchema,
 } from './schema/exercise.schema';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import {
       { name: AvailableExercise.name, schema: AvailableExerciseSchema },
       { name: FinishedExercise.name, schema: FinishedExerciseSchema },
     ]),
+    AuthModule,
   ],
   controllers: [ExercisesController],
   providers: [ExercisesService],

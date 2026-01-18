@@ -4,6 +4,7 @@ import { CartController } from './controllers/cart.controller';
 import { CartService } from './service/cart.service';
 import { CartItem, CartItemSchema } from './schema/cart-item.schema';
 import { Product, ProductSchema } from './schema/product.schema';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { Product, ProductSchema } from './schema/product.schema';
       ],
       'estore'
     ),
+    AuthModule,
   ],
   controllers: [CartController],
   providers: [CartService],
