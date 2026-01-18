@@ -12,7 +12,7 @@ import { TokenBlacklist, TokenBlacklistSchema } from './schema/token-blacklist.s
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
+      secret: 'your-secret-key',
       signOptions: { expiresIn: '24h' },
     }),
     MongooseModule.forFeature([
@@ -22,6 +22,6 @@ import { TokenBlacklist, TokenBlacklistSchema } from './schema/token-blacklist.s
   ],
   controllers: [AuthController, UsersController],
   providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  exports: [AuthService, JwtStrategy, PassportModule, JwtModule],
 })
 export class AuthModule {}

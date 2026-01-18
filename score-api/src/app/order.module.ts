@@ -4,6 +4,7 @@ import { OrderController } from './controllers/order.controller';
 import { OrderService } from './service/order.service';
 import { Order, OrderSchema } from './schema/order.schema';
 import { CartModule } from './cart.module';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { CartModule } from './cart.module';
       'estore'
     ),
     CartModule,
+    AuthModule,
   ],
   controllers: [OrderController],
   providers: [OrderService],
