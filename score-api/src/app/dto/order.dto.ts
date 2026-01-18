@@ -41,3 +41,18 @@ export class OrderResponseDto {
   date: Date;
   status: string;
 }
+
+export class PreviewOrderDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  items: OrderItemDto[];
+}
+
+export class OrderPreviewResponseDto {
+  items: OrderItemDto[];
+  subTotal: number;
+  tax: number;
+  delivery: number;
+  grandTotal: number;
+}

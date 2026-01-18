@@ -60,6 +60,53 @@ export class ProductService {
     return newProduct.save();
   }
 
+  async getProductById(id: string): Promise<ProductDto> {
+    const product = await this.productModel.findById(id).exec();
+    if (!product) {
+      throw new Error('Product not found');
+    }
+    return {
+      id: product._id.toString(),
+      name: product.name,
+      image: product.image,
+      price: product.price,
+      title: product.title,
+      category: product.category,
+    };
+  }
+
+  async getProductsByCategory(category: string): Promise<ProductDto[]> {
+    const products = await this.productModel.find({ category }).exec();
+    return products.map((product) => ({
+      id: product._id.toString(),
+      name: product.name,
+      image: product.image,
+      price: product.price,
+      title: product.title,
+      category: product.category,
+    }));
+  }
+
+  async searchProducts(query: string): Promise<ProductDto[]> {
+    const products = await this.productModel
+      .find({
+        $or: [
+          { name: { $regex: query, $options: 'i' } },
+          { title: { $regex: query, $options: 'i' } },
+          { category: { $regex: query, $options: 'i' } },
+        ],
+      })
+      .exec();
+    return products.map((product) => ({
+      id: product._id.toString(),
+      name: product.name,
+      image: product.image,
+      price: product.price,
+      title: product.title,
+      category: product.category,
+    }));
+  }
+
   async seedProducts(products: ProductDto[]): Promise<void> {
     await this.productModel.deleteMany({});
     await this.productModel.insertMany(products);

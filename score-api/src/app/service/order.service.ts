@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Order, OrderDocument } from '../schema/order.schema';
-import { CreateOrderDto, OrderResponseDto } from '../dto/order.dto';
+import { CreateOrderDto, OrderResponseDto, PreviewOrderDto, OrderPreviewResponseDto } from '../dto/order.dto';
 import { CartService } from './cart.service';
 
 @Injectable()
@@ -69,6 +69,30 @@ export class OrderService {
       total: order.total,
       date: order.date,
       status: order.status,
+    };
+  }
+
+  async previewOrder(previewOrderDto: PreviewOrderDto): Promise<OrderPreviewResponseDto> {
+    const items = previewOrderDto.items;
+
+    // Calculate subtotal
+    let subTotal = 0;
+    items.forEach((item) => {
+      const itemTotal = parseFloat(item.price) * item.quantity;
+      subTotal += itemTotal;
+    });
+
+    // Calculate tax and delivery
+    const tax = subTotal * 0.18; // 18% tax
+    const delivery = subTotal > 0 ? 50 : 0; // Flat delivery fee
+    const grandTotal = subTotal + tax + delivery;
+
+    return {
+      items,
+      subTotal: Math.round(subTotal * 100) / 100,
+      tax: Math.round(tax * 100) / 100,
+      delivery,
+      grandTotal: Math.round(grandTotal * 100) / 100,
     };
   }
 }

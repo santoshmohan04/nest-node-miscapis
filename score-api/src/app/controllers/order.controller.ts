@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { OrderService } from '../service/order.service';
-import { CreateOrderDto, OrderResponseDto } from '../dto/order.dto';
+import { CreateOrderDto, OrderResponseDto, PreviewOrderDto, OrderPreviewResponseDto } from '../dto/order.dto';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -25,6 +25,14 @@ export class OrderController {
     @Body() createOrderDto: CreateOrderDto,
   ): Promise<{ message: string; orderId: string }> {
     return this.orderService.createOrder(req.user.userId, createOrderDto);
+  }
+
+  @Post('preview')
+  @HttpCode(HttpStatus.OK)
+  async previewOrder(
+    @Body() previewOrderDto: PreviewOrderDto,
+  ): Promise<OrderPreviewResponseDto> {
+    return this.orderService.previewOrder(previewOrderDto);
   }
 
   @Get()

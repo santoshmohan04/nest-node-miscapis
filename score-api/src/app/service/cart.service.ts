@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CartItem, CartItemDocument } from '../schema/cart-item.schema';
 import { Product, ProductDocument } from '../schema/product.schema';
-import { AddToCartDto, CartItemResponseDto } from '../dto/cart.dto';
+import { AddToCartDto, CartItemResponseDto, UpdateCartItemDto, CartSummaryDto } from '../dto/cart.dto';
 
 @Injectable()
 export class CartService {
@@ -100,5 +100,54 @@ export class CartService {
     });
 
     return { message: 'Cart cleared successfully' };
+  }
+
+  async updateCartItem(
+    userId: string,
+    cartItemId: string,
+    updateCartItemDto: UpdateCartItemDto,
+  ): Promise<{ message: string }> {
+    const cartItem = await this.cartItemModel.findOne({
+      _id: new Types.ObjectId(cartItemId),
+      userId: new Types.ObjectId(userId),
+    });
+
+    if (!cartItem) {
+      throw new NotFoundException('Cart item not found');
+    }
+
+    cartItem.quantity = updateCartItemDto.quantity;
+    await cartItem.save();
+
+    return { message: 'Cart item updated successfully' };
+  }
+
+  async getCartSummary(userId: string): Promise<CartSummaryDto> {
+    const cartItems = await this.cartItemModel
+      .find({ userId: new Types.ObjectId(userId) })
+      .populate('productId')
+      .exec();
+
+    let subTotal = 0;
+    let itemsCount = 0;
+
+    cartItems.forEach((item) => {
+      const product = item.productId as any;
+      const itemTotal = parseFloat(product.price) * item.quantity;
+      subTotal += itemTotal;
+      itemsCount += item.quantity;
+    });
+
+    const tax = subTotal * 0.18; // 18% tax
+    const delivery = subTotal > 0 ? 50 : 0; // Flat delivery fee
+    const grandTotal = subTotal + tax + delivery;
+
+    return {
+      itemsCount,
+      subTotal: Math.round(subTotal * 100) / 100,
+      tax: Math.round(tax * 100) / 100,
+      delivery,
+      grandTotal: Math.round(grandTotal * 100) / 100,
+    };
   }
 }

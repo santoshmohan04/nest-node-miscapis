@@ -14,6 +14,7 @@ import { ExercisesModule } from './exercises.module';
 import { ProductModule } from './product.module';
 import { CartModule } from './cart.module';
 import { OrderModule } from './order.module';
+import { AddressModule } from './address.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { OrderModule } from './order.module';
     ProductModule,
     CartModule,
     OrderModule,
+    AddressModule,
   ],
   controllers: [AppController, GamesController],
   providers: [
