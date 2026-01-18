@@ -10,6 +10,12 @@ export class AddToCartDto {
   quantity: number;
 }
 
+export class UpdateCartItemDto {
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+}
+
 export class ProductDetailsDto {
   id: string;
   name: string;
@@ -25,4 +31,12 @@ export class CartItemResponseDto {
   quantity: number;
   userId: string;
   product: ProductDetailsDto;
+}
+
+export class CartSummaryDto {
+  itemsCount: number;
+  subTotal: number;
+  tax: number;
+  delivery: number;
+  grandTotal: number;
 }
