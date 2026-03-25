@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController, UsersController } from './controllers/auth.controller';
 import { AuthService } from './service/auth.service';
 import { JwtStrategy } from './service/jwt.strategy';
@@ -11,9 +12,18 @@ import { TokenBlacklist, TokenBlacklistSchema } from './schema/token-blacklist.s
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: 'your-secret-key',
-      signOptions: { expiresIn: '24h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const secret = configService.get<string>('JWT_SECRET');
+        const expiresIn = configService.get<string>('JWT_EXPIRATION') || '24h';
+        return {
+          secret,
+          // @ts-expect-error - expiresIn accepts string values like '24h' at runtime
+          signOptions: { expiresIn },
+        };
+      },
+      inject: [ConfigService],
     }),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },

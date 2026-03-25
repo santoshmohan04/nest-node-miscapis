@@ -9,9 +9,9 @@ import { RatingResponseDto, RecipeRatingsResponseDto } from '../dto/rating-respo
 @Injectable()
 export class RatingsService {
   constructor(
-    @InjectModel(Rating.name, 'estore') 
+    @InjectModel(Rating.name, 'recipes') 
     private ratingModel: Model<RatingDocument>,
-    @InjectModel(Recipe.name, 'estore')
+    @InjectModel(Recipe.name, 'recipes')
     private recipeModel: Model<RecipeDocument>,
   ) {}
 

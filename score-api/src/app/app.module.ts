@@ -46,6 +46,15 @@ import { RecipeCategoriesModule } from './recipe-categories.module';
       }),
       inject: [ConfigService],
     }),
+    // Named connection for 'recipes' database (recipes functionality)
+    MongooseModule.forRootAsync({
+      connectionName: 'recipes',
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_RECIPES_URI'),
+      }),
+      inject: [ConfigService],
+    }),
     EmployeeModule,
     AuthModule,
     ThreadsModule,

@@ -12,7 +12,7 @@ import { RatingsService } from './ratings.service';
 @Injectable()
 export class RecipesService {
   constructor(
-    @InjectModel(Recipe.name, 'estore') private recipeModel: Model<RecipeDocument>,
+    @InjectModel(Recipe.name, 'recipes') private recipeModel: Model<RecipeDocument>,
     @Inject(forwardRef(() => RatingsService))
     private ratingsService: RatingsService,
   ) {}

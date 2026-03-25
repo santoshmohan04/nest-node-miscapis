@@ -8,9 +8,9 @@ import { FavoriteRecipeResponseDto } from '../dto/favorite-recipe-response.dto';
 @Injectable()
 export class FavoritesService {
   constructor(
-    @InjectModel(Favorite.name, 'estore') 
+    @InjectModel(Favorite.name, 'recipes') 
     private favoriteModel: Model<FavoriteDocument>,
-    @InjectModel(Recipe.name, 'estore')
+    @InjectModel(Recipe.name, 'recipes')
     private recipeModel: Model<RecipeDocument>,
   ) {}
 

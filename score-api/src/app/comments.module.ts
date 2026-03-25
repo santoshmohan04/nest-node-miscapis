@@ -12,7 +12,7 @@ import { Recipe, RecipeSchema } from './schema/recipe.schema';
         { name: Comment.name, schema: CommentSchema },
         { name: Recipe.name, schema: RecipeSchema },
       ],
-      'estore'
+      'recipes'
     ),
   ],
   controllers: [CommentsController],

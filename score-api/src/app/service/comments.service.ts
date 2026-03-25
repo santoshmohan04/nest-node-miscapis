@@ -9,9 +9,9 @@ import { CommentResponseDto, RecipeCommentsResponseDto } from '../dto/comment-re
 @Injectable()
 export class CommentsService {
   constructor(
-    @InjectModel(Comment.name, 'estore') 
+    @InjectModel(Comment.name, 'recipes') 
     private commentModel: Model<CommentDocument>,
-    @InjectModel(Recipe.name, 'estore')
+    @InjectModel(Recipe.name, 'recipes')
     private recipeModel: Model<RecipeDocument>,
   ) {}
 

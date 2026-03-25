@@ -12,7 +12,7 @@ import { Recipe, RecipeSchema } from './schema/recipe.schema';
         { name: Favorite.name, schema: FavoriteSchema },
         { name: Recipe.name, schema: RecipeSchema },
       ],
-      'estore'
+      'recipes'
     ),
   ],
   controllers: [FavoritesController],

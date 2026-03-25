@@ -8,7 +8,7 @@ import { RecipeCategory, RecipeCategorySchema } from './schema/recipe-category.s
   imports: [
     MongooseModule.forFeature(
       [{ name: RecipeCategory.name, schema: RecipeCategorySchema }],
-      'estore'
+      'recipes'
     ),
   ],
   controllers: [RecipeCategoriesController],

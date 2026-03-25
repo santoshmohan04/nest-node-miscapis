@@ -8,7 +8,7 @@ import { RecipeCategoryResponseDto } from '../dto/recipe-category-response.dto';
 @Injectable()
 export class RecipeCategoriesService {
   constructor(
-    @InjectModel(RecipeCategory.name, 'estore') 
+    @InjectModel(RecipeCategory.name, 'recipes') 
     private recipeCategoryModel: Model<RecipeCategoryDocument>,
   ) {}
 

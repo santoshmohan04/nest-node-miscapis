@@ -9,7 +9,7 @@ import { RatingsModule } from './ratings.module';
   imports: [
     MongooseModule.forFeature(
       [{ name: Recipe.name, schema: RecipeSchema }],
-      'estore'
+      'recipes'
     ),
     RatingsModule,
   ],

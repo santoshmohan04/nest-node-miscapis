@@ -8,7 +8,7 @@ import { ShoppingList, ShoppingListSchema } from './schema/shopping-list.schema'
   imports: [
     MongooseModule.forFeature(
       [{ name: ShoppingList.name, schema: ShoppingListSchema }],
-      'estore'
+      'recipes'
     ),
   ],
   controllers: [ShoppingListController],

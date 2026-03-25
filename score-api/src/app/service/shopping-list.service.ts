@@ -9,7 +9,7 @@ import { ShoppingListResponseDto } from '../dto/shopping-list-response.dto';
 @Injectable()
 export class ShoppingListService {
   constructor(
-    @InjectModel(ShoppingList.name, 'estore') 
+    @InjectModel(ShoppingList.name, 'recipes') 
     private shoppingListModel: Model<ShoppingListDocument>,
   ) {}
 
