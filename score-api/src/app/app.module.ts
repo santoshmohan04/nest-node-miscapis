@@ -15,6 +15,13 @@ import { ProductModule } from './product.module';
 import { CartModule } from './cart.module';
 import { OrderModule } from './order.module';
 import { AddressModule } from './address.module';
+import { RecipesModule } from './recipes.module';
+import { FavoritesModule } from './favorites.module';
+import { RatingsModule } from './ratings.module';
+import { CommentsModule } from './comments.module';
+import { UploadsModule } from './uploads.module';
+import { ShoppingListModule } from './shopping-list.module';
+import { RecipeCategoriesModule } from './recipe-categories.module';
 
 @Module({
   imports: [
@@ -39,6 +46,15 @@ import { AddressModule } from './address.module';
       }),
       inject: [ConfigService],
     }),
+    // Named connection for 'recipes' database (recipes functionality)
+    MongooseModule.forRootAsync({
+      connectionName: 'recipes',
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_RECIPES_URI'),
+      }),
+      inject: [ConfigService],
+    }),
     EmployeeModule,
     AuthModule,
     ThreadsModule,
@@ -49,6 +65,13 @@ import { AddressModule } from './address.module';
     CartModule,
     OrderModule,
     AddressModule,
+    RecipesModule,
+    FavoritesModule,
+    RatingsModule,
+    CommentsModule,
+    UploadsModule,
+    ShoppingListModule,
+    RecipeCategoriesModule,
   ],
   controllers: [AppController, GamesController],
   providers: [
