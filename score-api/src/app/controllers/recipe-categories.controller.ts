@@ -14,7 +14,7 @@ import { CreateRecipeCategoryDto } from '../dto/create-recipe-category.dto';
 import { RecipeCategory } from '../schema/recipe-category.schema';
 import { RecipeCategoryResponseDto } from '../dto/recipe-category-response.dto';
 
-@Controller('api/recipe-categories')
+@Controller('recipe-categories')
 export class RecipeCategoriesController {
   constructor(private readonly recipeCategoriesService: RecipeCategoriesService) {}
 

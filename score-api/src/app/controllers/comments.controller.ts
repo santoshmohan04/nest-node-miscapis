@@ -17,7 +17,7 @@ import { CreateCommentDto } from '../dto/create-comment.dto';
 import { Comment } from '../schema/comment.schema';
 import { RecipeCommentsResponseDto } from '../dto/comment-response.dto';
 
-@Controller('api')
+@Controller('')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 

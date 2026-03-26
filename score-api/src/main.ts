@@ -32,8 +32,8 @@ async function bootstrap() {
     .addTag('score')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  // serve Swagger UI at /api
-  SwaggerModule.setup('api', app, documentFactory);
+  // serve Swagger UI at /docs (avoid duplicating global 'api' prefix)
+  SwaggerModule.setup('docs', app, documentFactory);
   // serve a simple HTML page at / with project details and link to Swagger
   const server = app.getHttpAdapter().getInstance();
   server.get('/', (_req, res) => {
@@ -45,9 +45,9 @@ async function bootstrap() {
           <p>Minimal backend for the Scores project.</p>
           <ul>
             <li>Version: 1.0</li>
-            <li>Swagger docs: <a href="/api">/api</a></li>
+            <li>Swagger docs: <a href="/docs">/docs</a></li>
           </ul>
-          <p>Use the <a href="/api">API documentation</a> to explore endpoints.</p>
+          <p>Use the <a href="/docs">API documentation</a> to explore endpoints.</p>
         </body>
       </html>
     `);

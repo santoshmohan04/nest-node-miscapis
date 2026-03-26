@@ -19,7 +19,7 @@ import { PaginatedRecipesWithRatingsResponseDto } from '../dto/recipe-with-ratin
 import { RecipeWithRatingDto } from '../dto/recipe-with-rating.dto';
 import { Recipe } from '../schema/recipe.schema';
 
-@Controller('api/recipes')
+@Controller('recipes')
 export class RecipesController {
   constructor(private readonly recipesService: RecipesService) {}
 
