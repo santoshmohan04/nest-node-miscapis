@@ -16,7 +16,7 @@ import { CreateRatingDto } from '../dto/create-rating.dto';
 import { Rating } from '../schema/rating.schema';
 import { RecipeRatingsResponseDto } from '../dto/rating-response.dto';
 
-@Controller('api/recipes')
+@Controller('recipes')
 export class RatingsController {
   constructor(private readonly ratingsService: RatingsService) {}
 

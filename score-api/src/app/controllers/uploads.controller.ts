@@ -11,7 +11,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { recipeImageStorage, imageFileFilter, MAX_FILE_SIZE, getFileUrl, MulterFile } from '../utils/file-upload.util';
 import { FileUploadResponseDto } from '../dto/file-upload-response.dto';
 
-@Controller('api/uploads')
+@Controller('uploads')
 export class UploadsController {
   @Post('recipe-image')
   @HttpCode(HttpStatus.OK)

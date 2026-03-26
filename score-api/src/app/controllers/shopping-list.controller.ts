@@ -19,7 +19,7 @@ import { UpdateShoppingListDto } from '../dto/update-shopping-list.dto';
 import { ShoppingList } from '../schema/shopping-list.schema';
 import { ShoppingListResponseDto } from '../dto/shopping-list-response.dto';
 
-@Controller('api/shopping-list')
+@Controller('shopping-list')
 @UseGuards(JwtAuthGuard)
 export class ShoppingListController {
   constructor(private readonly shoppingListService: ShoppingListService) {}
