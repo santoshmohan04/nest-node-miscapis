@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -17,6 +22,10 @@ import {
 } from '../dto/exercise.dto';
 import { CreateAvailableExerciseDto } from '../dto/available-exercise.dto';
 
+const MS_PER_DAY = 86_400_000;
+const ALLOWED_CATEGORIES = ['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Other'];
+const ALLOWED_DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
+
 @Injectable()
 export class ExercisesService {
   constructor(
@@ -31,6 +40,17 @@ export class ExercisesService {
     difficulty?: string,
     userId?: string,
   ): Promise<ExerciseResponseDto[]> {
+    if (category && !ALLOWED_CATEGORIES.includes(category)) {
+      throw new BadRequestException(
+        `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(', ')}`,
+      );
+    }
+    if (difficulty && !ALLOWED_DIFFICULTIES.includes(difficulty)) {
+      throw new BadRequestException(
+        `Invalid difficulty. Allowed values: ${ALLOWED_DIFFICULTIES.join(', ')}`,
+      );
+    }
+
     const filter: Record<string, unknown> = {
       $or: [{ userId: null }, { userId: { $exists: false } }],
     };
@@ -199,10 +219,9 @@ export class ExercisesService {
     let streakDays = 0;
     const today = new Date();
     const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const oneDayMs = 86400000;
 
     for (let i = 0; i < uniqueDates.length; i++) {
-      const expected = todayMs - i * oneDayMs;
+      const expected = todayMs - i * MS_PER_DAY;
       if (uniqueDates[i] === expected) {
         streakDays++;
       } else {
@@ -237,17 +256,18 @@ export class ExercisesService {
       if (groupBy === 'month') {
         period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       } else {
-        // ISO week
-        const startOfWeek = new Date(date);
-        startOfWeek.setDate(date.getDate() - date.getDay());
-        period = `${startOfWeek.getFullYear()}-W${String(
-          Math.ceil(
-            ((startOfWeek.getTime() - new Date(startOfWeek.getFullYear(), 0, 1).getTime()) /
-              86400000 +
-              1) /
-              7,
-          ),
-        ).padStart(2, '0')}`;
+        // Use Monday-based ISO week: find the Monday of the week containing this date
+        const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const monday = new Date(date);
+        monday.setDate(date.getDate() - daysFromMonday);
+        monday.setHours(0, 0, 0, 0);
+        const year = monday.getFullYear();
+        const jan4 = new Date(year, 0, 4); // Jan 4 is always in ISO week 1
+        const weekNum = Math.round(
+          ((monday.getTime() - jan4.getTime()) / MS_PER_DAY + jan4.getDay() + 6) / 7,
+        );
+        period = `${year}-W${String(weekNum).padStart(2, '0')}`;
       }
 
       if (!grouped.has(period)) {

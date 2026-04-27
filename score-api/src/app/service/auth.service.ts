@@ -24,6 +24,8 @@ import {
   ChangeProfilePasswordDto,
 } from '../dto/auth.dto';
 
+const PASSWORD_RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -223,7 +225,7 @@ export class AuthService {
     );
 
     const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_EXPIRY_MS); // 1 hour
 
     await this.passwordResetTokenModel.create({
       userId: user._id,
