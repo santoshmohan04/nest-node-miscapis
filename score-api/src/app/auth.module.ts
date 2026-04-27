@@ -3,11 +3,15 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthController, UsersController } from './controllers/auth.controller';
+import { AuthController, ProfileController, UsersController } from './controllers/auth.controller';
 import { AuthService } from './service/auth.service';
 import { JwtStrategy } from './service/jwt.strategy';
 import { User, UserSchema } from './schema/user.schema';
 import { TokenBlacklist, TokenBlacklistSchema } from './schema/token-blacklist.schema';
+import {
+  PasswordResetToken,
+  PasswordResetTokenSchema,
+} from './schema/password-reset-token.schema';
 
 @Module({
   imports: [
@@ -28,9 +32,10 @@ import { TokenBlacklist, TokenBlacklistSchema } from './schema/token-blacklist.s
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: TokenBlacklist.name, schema: TokenBlacklistSchema },
+      { name: PasswordResetToken.name, schema: PasswordResetTokenSchema },
     ]),
   ],
-  controllers: [AuthController, UsersController],
+  controllers: [AuthController, ProfileController, UsersController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtStrategy, PassportModule, JwtModule],
 })

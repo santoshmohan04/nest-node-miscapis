@@ -1,17 +1,39 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { User, UserDocument } from '../schema/user.schema';
 import { TokenBlacklist, TokenBlacklistDocument } from '../schema/token-blacklist.schema';
-import { RegisterDto, LoginDto, AuthResponseDto } from '../dto/auth.dto';
+import {
+  PasswordResetToken,
+  PasswordResetTokenDocument,
+} from '../schema/password-reset-token.schema';
+import {
+  RegisterDto,
+  LoginDto,
+  AuthResponseDto,
+  UpdateProfileDto,
+  ChangeProfilePasswordDto,
+} from '../dto/auth.dto';
+
+const PASSWORD_RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(TokenBlacklist.name) private tokenBlacklistModel: Model<TokenBlacklistDocument>,
+    @InjectModel(TokenBlacklist.name)
+    private tokenBlacklistModel: Model<TokenBlacklistDocument>,
+    @InjectModel(PasswordResetToken.name)
+    private passwordResetTokenModel: Model<PasswordResetTokenDocument>,
     private jwtService: JwtService,
   ) {}
 
@@ -103,6 +125,62 @@ export class AuthService {
     };
   }
 
+  async getProfile(userId: string) {
+    const user = await this.userModel.findById(userId).select('-password').exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      createdAt: (user as any).createdAt,
+    };
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    const user = await this.userModel
+      .findByIdAndUpdate(userId, { $set: updateProfileDto }, { new: true })
+      .select('-password')
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      createdAt: (user as any).createdAt,
+    };
+  }
+
+  async changeProfilePassword(
+    userId: string,
+    changePasswordDto: ChangeProfilePasswordDto,
+  ): Promise<void> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, saltRounds);
+    await this.userModel.findByIdAndUpdate(userId, { password: hashedPassword }).exec();
+  }
+
   async blacklistToken(token: string): Promise<void> {
     // Decode token to get expiration time
     const decoded = this.jwtService.decode(token) as any;
@@ -131,5 +209,55 @@ export class AuthService {
 
     // Update user's password
     await this.userModel.findByIdAndUpdate(userId, { password: hashedPassword });
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string; resetToken?: string }> {
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      // Return success even if user not found (security: don't reveal existence)
+      return { message: 'If the email exists, a reset token has been generated' };
+    }
+
+    // Invalidate previous unused tokens for this user
+    await this.passwordResetTokenModel.updateMany(
+      { userId: user._id, used: false },
+      { used: true },
+    );
+
+    const token = uuidv4();
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_EXPIRY_MS); // 1 hour
+
+    await this.passwordResetTokenModel.create({
+      userId: user._id,
+      token,
+      expiresAt,
+      used: false,
+    });
+
+    // NOTE: In production, send the token via email. Returned here for integration use.
+    return {
+      message: 'Password reset token generated successfully',
+      resetToken: token,
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const resetToken = await this.passwordResetTokenModel
+      .findOne({ token, used: false })
+      .exec();
+
+    if (!resetToken) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await this.userModel.findByIdAndUpdate(resetToken.userId, { password: hashedPassword });
+    await this.passwordResetTokenModel.findByIdAndUpdate(resetToken._id, { used: true });
   }
 }
