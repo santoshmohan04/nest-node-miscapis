@@ -1,6 +1,23 @@
-import { Controller, Post, Body, UseGuards, Request, Patch, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Patch,
+  Get,
+  Put,
+} from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
-import { RegisterDto, LoginDto, ChangePasswordDto } from '../dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ChangePasswordDto,
+  UpdateProfileDto,
+  ChangeProfilePasswordDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from '../dto/auth.dto';
 import { FcmTokenDto } from '../dto/bot.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
@@ -29,11 +46,11 @@ export class AuthController {
   async logout(@Request() req) {
     // Extract token from Authorization header
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (token) {
       await this.authService.blacklistToken(token);
     }
-    
+
     return { message: 'Logged out successfully' };
   }
 
@@ -41,6 +58,47 @@ export class AuthController {
   @Post('change-password')
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     await this.authService.changePassword(req.user.userId, changePasswordDto.password);
+    return { message: 'Password changed successfully' };
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+    return { message: 'Password reset successfully' };
+  }
+}
+
+@Controller('profile')
+export class ProfileController {
+  constructor(private readonly authService: AuthService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async getProfile(@Request() req) {
+    return this.authService.getProfile(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put()
+  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.userId, updateProfileDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('password')
+  async changeProfilePassword(
+    @Request() req,
+    @Body() changeProfilePasswordDto: ChangeProfilePasswordDto,
+  ) {
+    await this.authService.changeProfilePassword(req.user.userId, changeProfilePasswordDto);
     return { message: 'Password changed successfully' };
   }
 }

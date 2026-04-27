@@ -11,6 +11,8 @@ import { ThreadsModule } from './threads.module';
 import { MessagesModule } from './messages.module';
 import { BotModule } from './bot.module';
 import { ExercisesModule } from './exercises.module';
+import { GoalsModule } from './goals.module';
+import { WorkoutPlansModule } from './workout-plans.module';
 import { ProductModule } from './product.module';
 import { CartModule } from './cart.module';
 import { OrderModule } from './order.module';
@@ -61,6 +63,8 @@ import { RecipeCategoriesModule } from './recipe-categories.module';
     MessagesModule,
     BotModule,
     ExercisesModule,
+    GoalsModule,
+    WorkoutPlansModule,
     ProductModule,
     CartModule,
     OrderModule,
