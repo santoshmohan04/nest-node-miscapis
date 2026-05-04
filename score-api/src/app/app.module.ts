@@ -24,6 +24,7 @@ import { CommentsModule } from './comments.module';
 import { UploadsModule } from './uploads.module';
 import { ShoppingListModule } from './shopping-list.module';
 import { RecipeCategoriesModule } from './recipe-categories.module';
+import { MealsModule } from './meals.module';
 
 @Module({
   imports: [
@@ -57,6 +58,15 @@ import { RecipeCategoriesModule } from './recipe-categories.module';
       }),
       inject: [ConfigService],
     }),
+    // Named connection for 'meals' database (meals functionality)
+    MongooseModule.forRootAsync({
+      connectionName: 'meals',
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_MEALS_URI'),
+      }),
+      inject: [ConfigService],
+    }),
     EmployeeModule,
     AuthModule,
     ThreadsModule,
@@ -76,6 +86,7 @@ import { RecipeCategoriesModule } from './recipe-categories.module';
     UploadsModule,
     ShoppingListModule,
     RecipeCategoriesModule,
+    MealsModule,
   ],
   controllers: [AppController, GamesController],
   providers: [
