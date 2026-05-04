@@ -46,3 +46,17 @@ export const recipeImageStorage = diskStorage({
 export const getFileUrl = (filename: string): string => {
   return `/uploads/recipes/${filename}`;
 };
+
+// Storage configuration for meal images
+export const mealImageStorage = diskStorage({
+  destination: './uploads/images',
+  filename: (req, file, callback) => {
+    const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+    callback(null, uniqueName);
+  },
+});
+
+// Helper function to get meal image URL
+export const getMealImageUrl = (filename: string): string => {
+  return `/uploads/images/${filename}`;
+};

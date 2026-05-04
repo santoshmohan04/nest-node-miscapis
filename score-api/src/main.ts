@@ -19,6 +19,11 @@ async function bootstrap() {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
+
+  const mealImagesDir = join(process.cwd(), 'uploads', 'images');
+  if (!fs.existsSync(mealImagesDir)) {
+    fs.mkdirSync(mealImagesDir, { recursive: true });
+  }
   
   // Serve static files from uploads directory
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
