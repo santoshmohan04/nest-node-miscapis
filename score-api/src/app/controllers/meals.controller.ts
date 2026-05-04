@@ -6,7 +6,6 @@ import {
   Param,
   HttpCode,
   HttpStatus,
-  ValidationPipe,
 } from '@nestjs/common';
 import { MealsService } from '../service/meals.service';
 import { CreateMealDto } from '../dto/create-meal.dto';
@@ -31,7 +30,7 @@ export class MealsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body(ValidationPipe) createMealDto: CreateMealDto,
+    @Body() createMealDto: CreateMealDto,
   ): Promise<Meal> {
     return this.mealsService.create(createMealDto);
   }

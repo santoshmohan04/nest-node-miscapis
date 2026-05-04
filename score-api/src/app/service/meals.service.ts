@@ -23,10 +23,16 @@ export class MealsService {
   }
 
   async create(createMealDto: CreateMealDto): Promise<Meal> {
-    const slug = createMealDto.title
+    const baseSlug = createMealDto.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
+
+    let slug = baseSlug;
+    const existing = await this.mealModel.findOne({ slug }).lean().exec();
+    if (existing) {
+      slug = `${baseSlug}-${Date.now()}`;
+    }
 
     const meal = new this.mealModel({
       title: createMealDto.title,
