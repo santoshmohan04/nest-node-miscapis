@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scores API</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; padding: 2rem; max-width: 800px; margin: 0 auto; color: #333; }
+      h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+      h2 { color: #34495e; margin-top: 2rem; }
+      .card { background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+      code { background: #eee; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace; }
+      ul { padding-left: 1.5rem; }
+      li { margin-bottom: 0.5rem; }
+      a { color: #3498db; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <h1>🚀 Scores API</h1>
+    <div class="card">
+      <h2>Welcome to the Scores Backend</h2>
+      <p>This API powers the Scores project, providing a comprehensive set of features for the frontend application.</p>
+      <ul>
+        <li><strong>Version:</strong> 1.0.0</li>
+        <li><strong>Base API Path:</strong> <code>/api</code></li>
+        <li><strong>API Documentation:</strong> <a href="/docs">Swagger UI (/docs)</a></li>
+        <li><strong>Authentication:</strong> JWT (Bearer Token)</li>
+      </ul>
+    </div>
+    
+    <h2>📦 Key Modules</h2>
+    <ul>
+      <li><strong>🔐 Authentication:</strong> User registration, login, and profile management.</li>
+      <li><strong>🛍️ E-commerce:</strong> Products, shopping cart, orders, and user addresses.</li>
+      <li><strong>🍳 Recipes:</strong> Recipe management, favorites, ratings, comments, and shopping lists.</li>
+      <li><strong>🎮 Real-time:</strong> Live game scores streamed via Server-Sent Events (SSE).</li>
+      <li><strong>💬 Social:</strong> Chat threads and messaging.</li>
+      <li><strong>💪 Fitness:</strong> Available and finished exercises tracking.</li>
+      <li><strong>🤖 AI Bot:</strong> User intent detection.</li>
+      <li><strong>👥 Employees:</strong> Basic CRUD operations for employee records.</li>
+    </ul>
+    
+    <h2>💡 Quick Tips for Frontend & Testers</h2>
+    <ul>
+      <li>Check the <a href="/docs">Swagger Docs</a> to explore and test all endpoints directly from your browser.</li>
+      <li>Protected endpoints require an <code>Authorization: Bearer &lt;token&gt;</code> header. Obtain a token via the <code>/api/auth/login</code> endpoint.</li>
+      <li>Uploaded media (like recipe images) are served statically from the <code>/uploads/</code> directory.</li>
+      <li>The games scores stream can be accessed at <code>/api/games/scores</code>.</li>
+    </ul>
+  </body>
+</html>

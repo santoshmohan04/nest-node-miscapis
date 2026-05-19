@@ -87,4 +87,23 @@ export class ExercisesService {
       userId: exercise.userId.toString(),
     }));
   }
+
+  async getFinishedStats(userId: string) {
+    const finishedExercises = await this.finishedExerciseModel
+      .find({ userId: new Types.ObjectId(userId), state: 'completed' })
+      .exec();
+
+    const totalFinished = finishedExercises.length;
+    const totalDuration = finishedExercises.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+    const totalCalories = finishedExercises.reduce((acc, curr) => acc + (curr.calories || 0), 0);
+
+    return {
+      message: 'Stats retrieved successfully',
+      stats: {
+        totalFinished,
+        totalDuration,
+        totalCalories,
+      },
+    };
+  }
 }

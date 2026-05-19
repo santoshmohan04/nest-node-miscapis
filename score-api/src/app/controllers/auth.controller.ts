@@ -18,15 +18,20 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Post('forgot-password')
+  async forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getCurrentUser(@Request() req) {
+  async getCurrentUser(@Request() req: any) {
     return this.authService.getCurrentUser(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req) {
+  async logout(@Request() req: any) {
     // Extract token from Authorization header
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -39,7 +44,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
-  async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
+  async changePassword(@Request() req: any, @Body() changePasswordDto: ChangePasswordDto) {
     await this.authService.changePassword(req.user.userId, changePasswordDto.password);
     return { message: 'Password changed successfully' };
   }
@@ -51,7 +56,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('fcm-token')
-  async updateFcmToken(@Request() req, @Body() fcmTokenDto: FcmTokenDto) {
+  async updateFcmToken(@Request() req: any, @Body() fcmTokenDto: FcmTokenDto) {
     await this.authService.updateFcmToken(req.user.userId, fcmTokenDto.fcmToken);
     return { message: 'FCM token updated successfully' };
   }

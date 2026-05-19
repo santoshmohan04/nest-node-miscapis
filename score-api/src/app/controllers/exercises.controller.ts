@@ -25,7 +25,7 @@ export class ExercisesController {
   @UseGuards(JwtAuthGuard)
   @Post('finished')
   async addFinishedExercise(
-    @Request() req,
+    @Request() req: any,
     @Body() createFinishedExerciseDto: CreateFinishedExerciseDto,
   ) {
     return this.exercisesService.addFinishedExercise(
@@ -36,7 +36,13 @@ export class ExercisesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('finished')
-  async getFinishedExercises(@Request() req) {
+  async getFinishedExercises(@Request() req: any) {
     return this.exercisesService.getFinishedExercises(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('finished/stats')
+  async getFinishedStats(@Request() req: any) {
+    return this.exercisesService.getFinishedStats(req.user.userId);
   }
 }

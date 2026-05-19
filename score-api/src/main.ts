@@ -37,20 +37,12 @@ async function bootstrap() {
   // serve a simple HTML page at / with project details and link to Swagger
   const server = app.getHttpAdapter().getInstance();
   server.get('/', (_req, res) => {
-    res.send(`
-      <html>
-        <head><title>Scores API</title></head>
-        <body style="font-family: Arial, sans-serif; line-height:1.6; padding:24px;">
-          <h1>Scores API</h1>
-          <p>Minimal backend for the Scores project.</p>
-          <ul>
-            <li>Version: 1.0</li>
-            <li>Swagger docs: <a href="/docs">/docs</a></li>
-          </ul>
-          <p>Use the <a href="/docs">API documentation</a> to explore endpoints.</p>
-        </body>
-      </html>
-    `);
+    let htmlPath = join(__dirname, 'index.html');
+    // Fallback to the source directory if the file wasn't copied to dist
+    if (!fs.existsSync(htmlPath)) {
+      htmlPath = join(process.cwd(), 'score-api', 'src', 'index.html');
+    }
+    res.sendFile(htmlPath);
   });
   app.enableCors()
   const globalPrefix = 'api';

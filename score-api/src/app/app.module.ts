@@ -22,6 +22,7 @@ import { CommentsModule } from './comments.module';
 import { UploadsModule } from './uploads.module';
 import { ShoppingListModule } from './shopping-list.module';
 import { RecipeCategoriesModule } from './recipe-categories.module';
+import { GoalsModule } from './goals.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { RecipeCategoriesModule } from './recipe-categories.module';
     UploadsModule,
     ShoppingListModule,
     RecipeCategoriesModule,
+    GoalsModule,
   ],
   controllers: [AppController, GamesController],
   providers: [
