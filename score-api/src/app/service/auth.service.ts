@@ -105,24 +105,6 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    const user = await this.userModel.findOne({ email });
-    
-    // To prevent email enumeration attacks, always return the same generic message.
-    if (user) {
-      // Generate a short-lived JWT specifically for resetting the password (e.g., 15 mins)
-      const resetToken = this.jwtService.sign(
-        { sub: user._id, email: user.email, purpose: 'password-reset' },
-        { expiresIn: '15m' } // Override default expiration
-      );
-
-      // TODO: In a production environment, integrate a mailer service (like SendGrid or AWS SES)
-      console.log(`\n📧 [MOCK EMAIL] Password reset requested for ${email}\n🔗 Reset Link: http://localhost:4200/reset-password?token=${resetToken}\n`);
-    }
-
-    return { message: 'If that email is registered, a password reset link has been sent.' };
-  }
-
   async updateFcmToken(userId: string, fcmToken: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(userId, { fcmToken });
   }
