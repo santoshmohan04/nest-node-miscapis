@@ -11,6 +11,7 @@ import { ThreadsModule } from './threads.module';
 import { MessagesModule } from './messages.module';
 import { BotModule } from './bot.module';
 import { ExercisesModule } from './exercises.module';
+import { WorkoutPlansModule } from './workout-plans.module';
 import { ProductModule } from './product.module';
 import { CartModule } from './cart.module';
 import { OrderModule } from './order.module';
@@ -23,6 +24,7 @@ import { UploadsModule } from './uploads.module';
 import { ShoppingListModule } from './shopping-list.module';
 import { RecipeCategoriesModule } from './recipe-categories.module';
 import { GoalsModule } from './goals.module';
+import { MealsModule } from './meals.module';
 
 @Module({
   imports: [
@@ -56,12 +58,23 @@ import { GoalsModule } from './goals.module';
       }),
       inject: [ConfigService],
     }),
+    // Named connection for 'meals' database (meals functionality)
+    MongooseModule.forRootAsync({
+      connectionName: 'meals',
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_MEALS_URI'),
+      }),
+      inject: [ConfigService],
+    }),
     EmployeeModule,
     AuthModule,
     ThreadsModule,
     MessagesModule,
     BotModule,
     ExercisesModule,
+    GoalsModule,
+    WorkoutPlansModule,
     ProductModule,
     CartModule,
     OrderModule,
@@ -74,6 +87,7 @@ import { GoalsModule } from './goals.module';
     ShoppingListModule,
     RecipeCategoriesModule,
     GoalsModule,
+    MealsModule,
   ],
   controllers: [AppController, GamesController],
   providers: [

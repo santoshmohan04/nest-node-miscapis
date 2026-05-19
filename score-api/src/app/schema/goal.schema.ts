@@ -3,19 +3,25 @@ import { Document, Types } from 'mongoose';
 
 export type GoalDocument = Goal & Document;
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
+  collection: 'goals',
+})
 export class Goal {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'User', unique: true })
-  userId!: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  userId: Types.ObjectId;
 
-  @Prop({ default: 2000 })
-  dailyCalories!: number;
+  @Prop({ required: true })
+  weekStart: Date;
 
-  @Prop({ default: 30 })
-  dailyExerciseMinutes!: number;
+  @Prop({ default: null })
+  targetSessions: number | null;
 
-  @Prop()
-  targetWeight?: number;
+  @Prop({ default: null })
+  targetCalories: number | null;
+
+  @Prop({ default: null })
+  targetMinutes: number | null;
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);

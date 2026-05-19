@@ -1,40 +1,91 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Goal, GoalDocument } from '../schema/goal.schema';
-import { UpdateGoalsDto } from '../dto/goal.dto';
+import {
+  FinishedExercise,
+  FinishedExerciseDocument,
+} from '../schema/exercise.schema';
+import { CreateGoalDto, GoalProgressDto } from '../dto/goal.dto';
 
 @Injectable()
 export class GoalsService {
   constructor(
     @InjectModel(Goal.name) private goalModel: Model<GoalDocument>,
+    @InjectModel(FinishedExercise.name)
+    private finishedExerciseModel: Model<FinishedExerciseDocument>,
   ) {}
 
-  async getCurrentGoals(userId: string) {
-    let goals = await this.goalModel.findOne({ userId: new Types.ObjectId(userId) }).exec();
-    
-    // Return default goals if the user hasn't set any yet
-    if (!goals) {
-      goals = new this.goalModel({ userId: new Types.ObjectId(userId) });
-    }
-
-    return {
-      message: 'Current goals retrieved successfully',
-      goals,
-    };
+  private getWeekStart(date = new Date()): Date {
+    const d = new Date(date);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d;
   }
 
-  async updateCurrentGoals(userId: string, goalsData: UpdateGoalsDto) {
-    // upsert: true will create the document if it doesn't exist, or update it if it does
-    const goals = await this.goalModel.findOneAndUpdate(
-      { userId: new Types.ObjectId(userId) },
-      { $set: goalsData },
-      { new: true, upsert: true }
-    ).exec();
+  async upsertGoal(userId: string, createGoalDto: CreateGoalDto): Promise<GoalProgressDto> {
+    const weekStart = this.getWeekStart();
+
+    const goal = await this.goalModel
+      .findOneAndUpdate(
+        { userId: new Types.ObjectId(userId), weekStart },
+        {
+          $set: {
+            userId: new Types.ObjectId(userId),
+            weekStart,
+            targetSessions: createGoalDto.targetSessions ?? null,
+            targetCalories: createGoalDto.targetCalories ?? null,
+            targetMinutes: createGoalDto.targetMinutes ?? null,
+          },
+        },
+        { new: true, upsert: true },
+      )
+      .exec();
+
+    return this.buildGoalProgress(goal, userId);
+  }
+
+  async getCurrentGoal(userId: string): Promise<GoalProgressDto> {
+    const weekStart = this.getWeekStart();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    const goal = await this.goalModel
+      .findOne({ userId: new Types.ObjectId(userId), weekStart })
+      .exec();
+
+    if (!goal) {
+      throw new NotFoundException('No goal set for the current week');
+    }
+
+    return this.buildGoalProgress(goal, userId);
+  }
+
+  private async buildGoalProgress(goal: GoalDocument, userId: string): Promise<GoalProgressDto> {
+    const weekStart = this.getWeekStart();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    const exercises = await this.finishedExerciseModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        date: { $gte: weekStart, $lt: weekEnd },
+        state: 'completed',
+      })
+      .exec();
+
+    const sessions = exercises.length;
+    const calories = exercises.reduce((sum, e) => sum + (e.calories || 0), 0);
+    const minutes = exercises.reduce((sum, e) => sum + (e.duration || 0), 0);
 
     return {
-      message: 'Current goals updated successfully',
-      goals,
+      id: goal._id.toString(),
+      userId: goal.userId.toString(),
+      weekStart: goal.weekStart,
+      targetSessions: goal.targetSessions,
+      targetCalories: goal.targetCalories,
+      targetMinutes: goal.targetMinutes,
+      progress: { sessions, calories, minutes },
     };
   }
 }

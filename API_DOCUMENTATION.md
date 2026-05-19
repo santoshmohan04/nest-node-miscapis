@@ -6,16 +6,22 @@
 3. [Authentication](#authentication)
 4. [API Endpoints](#api-endpoints)
    - [Authentication & User Management](#-authentication--user-management)
+   - [Profile](#-profile)
    - [Employee Management](#-employee-management)
    - [Games (Real-time Scores)](#-games-real-time-scores-via-sse)
    - [Threads & Messages](#-threads--messages)
    - [Bot (Intent Detection)](#-bot-intent-detection)
    - [Exercises](#-exercises)
+   - [Workout Plans](#-workout-plans)
+   - [Goals](#-goals)
    - [E-commerce (Products, Cart, Orders, Addresses)](#-e-commerce---products)
+   - [Meals](#-meals)
    - [Recipe Management](#-recipe-management)
-5. [Frontend Integration Guide](#frontend-integration-guide)
-6. [Data Models](#data-models)
-7. [Improvements & Recommendations](#improvements--recommendations)
+5. [curl Examples](#curl-examples)
+6. [Frontend Integration Guide](#frontend-integration-guide)
+7. [Data Models](#data-models)
+8. [Environment & Config Notes](#environment--config-notes)
+9. [Improvements & Recommendations](#improvements--recommendations)
 
 ---
 
@@ -23,7 +29,7 @@
 
 **Base URL:** `http://localhost:3000/api`
 
-**API Documentation (Swagger):** `http://localhost:3000/api`
+**Swagger UI:** `http://localhost:3000/docs`
 
 The Score API is a comprehensive backend service built with NestJS that provides functionality for:
 - User authentication and management
@@ -31,8 +37,11 @@ The Score API is a comprehensive backend service built with NestJS that provides
 - Real-time game scores (Server-Sent Events)
 - Chat threads and messages
 - Bot intent detection
-- Exercise tracking
+- Exercise tracking (available exercises, finished exercises, stats, weekly/monthly summaries)
+- Workout plan management
+- Weekly goal tracking
 - E-commerce features (Products, Cart, Orders, Addresses)
+- Meal catalog
 - Recipe Management System (Recipes, Favorites, Ratings, Comments, Image Uploads, Shopping Lists, Categories)
 
 ---
@@ -40,37 +49,38 @@ The Score API is a comprehensive backend service built with NestJS that provides
 ## Backend Stack
 
 ### Core Framework & Runtime
-- **NestJS** (v10.0.2) - Progressive Node.js framework
-- **Node.js** (v18.16.9)
-- **TypeScript** (v5.4.2)
+- **NestJS** - Progressive Node.js framework
+- **Node.js** - JavaScript runtime
+- **TypeScript** - Typed JavaScript
 
 ### Database
-- **MongoDB** with Mongoose (v8.13.2)
-- **Two Database Connections:**
-  - `test` database (default) - for general app features
-  - `estore` database - for e-commerce features
+- **MongoDB** with Mongoose (v8+)
+- **Multiple Database Connections:**
+  - `test` database (default) – general app features (auth, employees, exercises, threads, messages, bot)
+  - `estore` database – e-commerce features (products, cart, orders, addresses)
+  - `recipes` database – recipe management system
+  - `meals` database – meal catalog
 
 ### Authentication & Security
-- **Passport.js** (v0.7.0) - Authentication middleware
-- **JWT** (@nestjs/jwt v11.0.2) - Token-based authentication
-- **passport-jwt** (v4.0.1) - JWT strategy for Passport
-- **bcrypt** (v6.0.0) - Password hashing
+- **Passport.js** – Authentication middleware
+- **JWT** (`@nestjs/jwt`) – Token-based authentication
+- **passport-jwt** – JWT strategy for Passport
+- **bcrypt** – Password hashing
 
 ### Validation & Transformation
-- **class-validator** (v0.14.3) - DTO validation
-- **class-transformer** (v0.5.1) - Object transformation
+- **class-validator** – DTO validation
+- **class-transformer** – Object transformation
 
 ### Additional Libraries
-- **Axios** (v1.6.0) - HTTP client
-- **RxJS** (v7.8.0) - Reactive programming
-- **UUID** (v11.1.0) - Unique ID generation
-- **Multer** (@nestjs/platform-express) - File upload handling
+- **RxJS** – Reactive programming (SSE)
+- **UUID** – Unique ID generation for uploaded file names
+- **Multer** (`@nestjs/platform-express`) – File upload handling
 
 ### Development Tools
-- **Nx Monorepo** (v19.0.2) - Build system and monorepo management
-- **Jest** (v29.4.1) - Testing framework
-- **Swagger** (@nestjs/swagger v8.0.5) - API documentation
-- **ESLint** & **Prettier** - Code quality and formatting
+- **Nx Monorepo** – Build system and monorepo management
+- **Jest** – Testing framework
+- **Swagger** (`@nestjs/swagger`) – API documentation (served at `/docs`)
+- **ESLint** & **Prettier** – Code quality and formatting
 
 ---
 
@@ -86,13 +96,14 @@ The API uses **JWT (JSON Web Token)** based authentication with a bearer token s
 2. **Login** with credentials → `POST /api/auth/login` → Receive JWT token
 3. **Use token** in subsequent requests via `Authorization: Bearer <token>` header
 4. **Token validation** happens automatically for protected routes
-5. **Logout** invalidates the token by adding it to blacklist → `POST /api/auth/logout`
+5. **Logout** invalidates the token by adding it to a database blacklist → `POST /api/auth/logout`
 
 #### JWT Configuration:
-- **Secret Key:** `'your-secret-key'` ⚠️ (Should be moved to environment variables)
+- **Secret Key:** Read from the `JWT_SECRET` environment variable (see `.env.example`)
+- **Token Expiration:** Read from the `JWT_EXPIRATION` environment variable (default: `24h`)
 - **Token Type:** Bearer Token
 - **Extraction:** From `Authorization` header
-- **Blacklist:** Tokens can be revoked (stored in database)
+- **Blacklist:** Tokens are revoked at logout and stored in the database; subsequent requests with a blacklisted token return `401 Unauthorized`
 
 ---
 
@@ -171,6 +182,8 @@ Response: 200 OK
 {
   "message": "Logged out successfully"
 }
+
+Note: The token is added to a blacklist in the database and becomes invalid immediately.
 ```
 
 #### Change Password
@@ -181,12 +194,45 @@ Content-Type: application/json
 
 Body:
 {
-  "password": "newPassword123"  // min 6 characters
+  "password": "newPassword123"  // min 6 characters (the new password)
 }
 
 Response: 200 OK
 {
   "message": "Password changed successfully"
+}
+```
+
+#### Forgot Password
+```
+POST /api/auth/forgot-password
+Content-Type: application/json
+
+Body:
+{
+  "email": "user@example.com"
+}
+
+Response: 200 OK
+{
+  "message": "Password reset email sent"  // or similar; exact message from service
+}
+```
+
+#### Reset Password
+```
+POST /api/auth/reset-password
+Content-Type: application/json
+
+Body:
+{
+  "token": "<reset-token-from-email>",
+  "newPassword": "newSecurePass123"  // min 6 characters
+}
+
+Response: 200 OK
+{
+  "message": "Password reset successfully"
 }
 ```
 
@@ -209,24 +255,96 @@ Response: 200 OK
 
 ---
 
+### 👤 Profile
+
+**Authentication Required** ✅
+
+#### Get Profile
+```
+GET /api/profile
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "id": "507f1f77bcf86cd799439011",
+  "email": "user@example.com",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+```
+
+#### Update Profile
+```
+PUT /api/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body (all fields optional):
+{
+  "firstName": "Jane",
+  "lastName": "Smith"
+}
+
+Response: 200 OK
+{
+  "id": "...",
+  "email": "user@example.com",
+  "firstName": "Jane",
+  "lastName": "Smith"
+}
+```
+
+#### Change Profile Password
+```
+PUT /api/profile/password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newSecurePass123"  // min 6 characters
+}
+
+Response: 200 OK
+{
+  "message": "Password changed successfully"
+}
+```
+
+---
+
 ### 👥 Employee Management
 
 All employee endpoints are **PUBLIC** (no authentication required).
+
+The Employee schema is flexible and accepts partial data. Common fields include:
 
 #### Create Employee
 ```
 POST /api/employees
 Content-Type: application/json
 
-Body:
+Body (all fields optional; pass any Employee fields you need):
 {
-  "name": "Jane Smith",
-  "position": "Software Engineer",
-  "department": "Engineering",
-  "salary": 75000
+  "id": "EMP001",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane@example.com",
+  "salary": 75000,
+  "age": 30
 }
 
 Response: 201 Created
+{
+  "_id": "507f1f77bcf86cd799439011",
+  "id": "EMP001",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane@example.com",
+  "salary": 75000,
+  ...
+}
 ```
 
 #### Get All Employees
@@ -242,6 +360,7 @@ Response: 200 OK
 GET /api/employees/:id
 
 Response: 200 OK
+{...}
 ```
 
 #### Update Employee
@@ -249,14 +368,13 @@ Response: 200 OK
 PUT /api/employees/:id
 Content-Type: application/json
 
-Body:
+Body (partial Employee fields):
 {
-  "name": "Jane Smith",
-  "position": "Senior Software Engineer",
   "salary": 85000
 }
 
 Response: 200 OK
+{...}
 ```
 
 #### Delete Employee
@@ -347,8 +465,9 @@ Body:
 
 Response: 200 OK
 {
-  "intent": "weather_query",
-  "confidence": 0.95
+  "intent": "weather",   // "weather" | "currency" | "joke" | "unknown"
+  "response": "Here is the current weather...",
+  "data": {...}          // optional extra data depending on intent
 }
 ```
 
@@ -356,38 +475,61 @@ Response: 200 OK
 
 ### 💪 Exercises
 
-#### Get Available Exercises (PUBLIC)
+**All exercise endpoints require authentication** ✅
+
+#### Get Available Exercises
 ```
 GET /api/exercises/available
+Authorization: Bearer <token>
+Query Parameters (optional):
+  - category: string ("Cardio" | "Strength" | "Flexibility" | "HIIT" | "Other")
+  - difficulty: string ("Beginner" | "Intermediate" | "Advanced")
 
 Response: 200 OK
 [
   {
     "id": "...",
     "name": "Push-ups",
-    "description": "Upper body exercise",
-    "category": "strength"
+    "duration": 600,
+    "calories": 50,
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "userId": null
   }
 ]
 ```
 
-#### Create Available Exercise (PUBLIC)
+#### Create Available Exercise
 ```
 POST /api/exercises/available
+Authorization: Bearer <token>
 Content-Type: application/json
 
 Body:
 {
   "name": "Squats",
-  "description": "Lower body exercise",
-  "category": "strength",
-  "duration": 300
+  "duration": 600,
+  "calories": 60,
+  "category": "Strength",      // optional: "Cardio"|"Strength"|"Flexibility"|"HIIT"|"Other"
+  "difficulty": "Beginner"     // optional: "Beginner"|"Intermediate"|"Advanced"
 }
 
 Response: 201 Created
+{...exercise object...}
 ```
 
-#### Add Finished Exercise (PROTECTED)
+#### Delete Available Exercise
+```
+DELETE /api/exercises/available/:id
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "message": "Exercise deleted successfully"
+}
+```
+
+#### Add Finished Exercise
 ```
 POST /api/exercises/finished
 Authorization: Bearer <token>
@@ -395,22 +537,214 @@ Content-Type: application/json
 
 Body:
 {
-  "exerciseId": "507f1f77bcf86cd799439011",
-  "duration": 1800,
-  "caloriesBurned": 200,
-  "date": "2024-01-01T00:00:00.000Z"
+  "name": "Morning Run",
+  "duration": 1800,           // seconds
+  "calories": 200,
+  "date": "2024-01-01T00:00:00.000Z",
+  "state": "completed"        // "completed" | "cancelled"
 }
 
 Response: 201 Created
+{...finished exercise object...}
 ```
 
-#### Get User's Finished Exercises (PROTECTED)
+#### Get User's Finished Exercises
 ```
 GET /api/exercises/finished
 Authorization: Bearer <token>
 
 Response: 200 OK
-[...]
+[
+  {
+    "id": "...",
+    "name": "Morning Run",
+    "duration": 1800,
+    "calories": 200,
+    "date": "2024-01-01T00:00:00.000Z",
+    "state": "completed",
+    "userId": "..."
+  }
+]
+```
+
+#### Get Finished Exercise Stats
+```
+GET /api/exercises/finished/stats
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "totalSessions": 15,
+  "totalCalories": 3200,
+  "totalDuration": 27000,
+  "streakDays": 5,
+  "completionRate": 0.93
+}
+```
+
+#### Get Finished Exercises Summary
+```
+GET /api/exercises/finished/summary
+Authorization: Bearer <token>
+Query Parameters (optional):
+  - groupBy: "week" | "month"  (default: "week")
+
+Response: 200 OK
+[
+  {
+    "period": "2024-W01",
+    "totalSessions": 5,
+    "totalCalories": 800,
+    "totalDuration": 9000
+  }
+]
+```
+
+#### Update Finished Exercise
+```
+PUT /api/exercises/finished/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body (all fields optional):
+{
+  "name": "Evening Run",
+  "duration": 2100,
+  "calories": 230,
+  "state": "completed"
+}
+
+Response: 200 OK
+{...updated exercise object...}
+```
+
+#### Delete Finished Exercise
+```
+DELETE /api/exercises/finished/:id
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "message": "Exercise record deleted successfully"
+}
+```
+
+---
+
+### 🏋️ Workout Plans
+
+**Authentication Required** ✅
+
+#### List Workout Plans
+```
+GET /api/workout-plans
+Authorization: Bearer <token>
+
+Response: 200 OK
+[
+  {
+    "id": "...",
+    "userId": "...",
+    "name": "Morning Routine",
+    "exerciseIds": ["...", "..."],
+    "isTemplate": false,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]
+```
+
+#### Create Workout Plan
+```
+POST /api/workout-plans
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:
+{
+  "name": "Morning Routine",
+  "exerciseIds": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"],
+  "isTemplate": false   // optional, default false
+}
+
+Response: 201 Created
+{...workout plan object...}
+```
+
+#### Update Workout Plan
+```
+PUT /api/workout-plans/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body (all fields optional):
+{
+  "name": "Updated Routine",
+  "exerciseIds": ["..."],
+  "isTemplate": true
+}
+
+Response: 200 OK
+{...updated workout plan object...}
+```
+
+#### Delete Workout Plan
+```
+DELETE /api/workout-plans/:id
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "message": "Workout plan deleted successfully"
+}
+```
+
+---
+
+### 🎯 Goals
+
+**Authentication Required** ✅
+
+Weekly fitness goals per user. Calling `POST /api/goals` when a goal already exists for the current week will upsert (update) it.
+
+#### Set / Update Weekly Goal
+```
+POST /api/goals
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body (all fields optional):
+{
+  "targetSessions": 5,
+  "targetCalories": 2000,
+  "targetMinutes": 300
+}
+
+Response: 201 Created (or 200 OK on upsert)
+{
+  "id": "...",
+  "userId": "...",
+  "weekStart": "2024-01-01T00:00:00.000Z",
+  "targetSessions": 5,
+  "targetCalories": 2000,
+  "targetMinutes": 300
+}
+```
+
+#### Get Current Weekly Goal
+```
+GET /api/goals/current
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "id": "...",
+  "userId": "...",
+  "weekStart": "2024-01-01T00:00:00.000Z",
+  "targetSessions": 5,
+  "targetCalories": 2000,
+  "targetMinutes": 300
+}
 ```
 
 ---
@@ -700,24 +1034,30 @@ Content-Type: application/json
 
 Body:
 {
-  "street": "123 Main St",
+  "fullName": "John Doe",
+  "phone": "+1-555-0100",
+  "addressLine1": "123 Main St",
+  "addressLine2": "Apt 4B",   // optional
   "city": "New York",
   "state": "NY",
-  "zipCode": "10001",
+  "pincode": "10001",
   "country": "USA",
-  "isDefault": true
+  "isDefault": true           // optional, default false
 }
 
 Response: 201 Created
 {
   "id": "...",
-  "street": "123 Main St",
+  "fullName": "John Doe",
+  "phone": "+1-555-0100",
+  "addressLine1": "123 Main St",
+  "addressLine2": "Apt 4B",
   "city": "New York",
   "state": "NY",
-  "zipCode": "10001",
+  "pincode": "10001",
   "country": "USA",
   "isDefault": true,
-  "userId": "..."
+  "createdAt": "2024-01-01T00:00:00.000Z"
 }
 ```
 
@@ -745,18 +1085,19 @@ PUT /api/addresses/:id
 Authorization: Bearer <token>
 Content-Type: application/json
 
-Body:
+Body (all fields optional):
 {
-  "street": "456 Oak Ave",
+  "fullName": "Jane Doe",
+  "addressLine1": "456 Oak Ave",
   "city": "Los Angeles",
   "state": "CA",
-  "zipCode": "90001",
+  "pincode": "90001",
   "country": "USA",
   "isDefault": false
 }
 
 Response: 200 OK
-{...}
+{...updated address object...}
 ```
 
 #### Delete Address
@@ -774,17 +1115,18 @@ Response: 200 OK
 
 ### 🍳 Recipe Management
 
+All recipe endpoints are **PUBLIC** (no authentication required).
+
 #### Get All Recipes (with Pagination, Search, Filtering)
 ```
 GET /api/recipes
 Query Parameters (all optional):
   - page: number (default: 1)
   - limit: number (default: 10)
-  - search: string (searches in title, description, ingredients)
-  - category: string (filter by category)
+  - search: string (searches in title and description)
+  - category: string (filter by category name)
   - difficulty: string ("easy" | "medium" | "hard")
-  - minPrepTime: number (minutes)
-  - maxPrepTime: number (minutes)
+  - authorId: string (filter by author)
 
 Example: GET /api/recipes?page=1&limit=10&search=pasta&difficulty=easy
 
@@ -798,22 +1140,21 @@ Response: 200 OK
       "ingredients": [
         {
           "name": "Spaghetti",
-          "quantity": "400",
+          "quantity": 400,
           "unit": "g"
         },
         {
           "name": "Eggs",
-          "quantity": "4",
+          "quantity": 4,
           "unit": "pieces"
         }
       ],
-      "instructions": "1. Boil pasta... 2. Mix eggs...",
-      "prepTime": 30,
-      "cookTime": 15,
+      "instructions": ["Boil pasta in salted water.", "Mix eggs with cheese..."],
+      "cookingTime": 45,
       "servings": 4,
       "difficulty": "easy",
       "category": "Italian",
-      "imageUrl": "http://localhost:3000/uploads/recipes/abc-123.jpg",
+      "imageUrl": "/uploads/recipes/abc-123.jpg",
       "authorId": "...",
       "averageRating": 4.5,
       "totalRatings": 12,
@@ -838,13 +1179,12 @@ Response: 200 OK
   "title": "Classic Pasta Carbonara",
   "description": "Traditional Italian pasta dish",
   "ingredients": [...],
-  "instructions": "...",
-  "prepTime": 30,
-  "cookTime": 15,
+  "instructions": ["Step 1...", "Step 2..."],
+  "cookingTime": 45,
   "servings": 4,
   "difficulty": "easy",
   "category": "Italian",
-  "imageUrl": "http://localhost:3000/uploads/recipes/abc-123.jpg",
+  "imageUrl": "/uploads/recipes/abc-123.jpg",
   "authorId": "...",
   "averageRating": 4.5,
   "totalRatings": 12,
@@ -853,10 +1193,9 @@ Response: 200 OK
 }
 ```
 
-#### Create Recipe (PROTECTED)
+#### Create Recipe (PUBLIC)
 ```
 POST /api/recipes
-Authorization: Bearer <token>
 Content-Type: application/json
 
 Body:
@@ -866,38 +1205,41 @@ Body:
   "ingredients": [
     {
       "name": "Spaghetti",
-      "quantity": "400",
+      "quantity": 400,
       "unit": "g"
     },
     {
       "name": "Eggs",
-      "quantity": "4",
+      "quantity": 4,
       "unit": "pieces"
     }
   ],
-  "instructions": "1. Boil pasta in salted water. 2. Mix eggs with cheese...",
-  "prepTime": 30,
-  "cookTime": 15,
+  "instructions": [
+    "Boil pasta in salted water.",
+    "Mix eggs with grated cheese.",
+    "Combine everything off heat."
+  ],
+  "cookingTime": 45,
   "servings": 4,
   "difficulty": "easy",
   "category": "Italian",
-  "imageUrl": "http://localhost:3000/uploads/recipes/abc-123.jpg"
+  "authorId": "507f1f77bcf86cd799439011",
+  "imageUrl": "/uploads/recipes/abc-123.jpg"   // optional
 }
 
 Response: 201 Created
 {...recipe object...}
 ```
 
-#### Update Recipe (PROTECTED - Author Only)
+#### Update Recipe (PUBLIC)
 ```
-PATCH /api/recipes/:id
-Authorization: Bearer <token>
+PUT /api/recipes/:id
 Content-Type: application/json
 
-Body:
+Body (all fields optional):
 {
   "title": "Updated Classic Pasta Carbonara",
-  "prepTime": 25,
+  "cookingTime": 40,
   "servings": 6
 }
 
@@ -905,12 +1247,12 @@ Response: 200 OK
 {...updated recipe object...}
 ```
 
-#### Delete Recipe (PROTECTED - Author Only)
+#### Delete Recipe (PUBLIC)
 ```
 DELETE /api/recipes/:id
-Authorization: Bearer <token>
 
 Response: 200 OK
+{...deleted recipe object...}
 ```
 
 ---
@@ -921,14 +1263,8 @@ Response: 200 OK
 
 #### Add Recipe to Favorites
 ```
-POST /api/favorites
+POST /api/recipes/:id/favorite
 Authorization: Bearer <token>
-Content-Type: application/json
-
-Body:
-{
-  "recipeId": "507f1f77bcf86cd799439011"
-}
 
 Response: 201 Created
 {
@@ -939,9 +1275,20 @@ Response: 201 Created
 }
 ```
 
+#### Remove Recipe from Favorites
+```
+DELETE /api/recipes/:id/favorite
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "message": "Recipe removed from favorites"
+}
+```
+
 #### Get User's Favorite Recipes
 ```
-GET /api/favorites
+GET /api/users/me/favorites
 Authorization: Bearer <token>
 
 Response: 200 OK
@@ -955,49 +1302,26 @@ Response: 200 OK
       "description": "...",
       "imageUrl": "...",
       "difficulty": "easy",
-      "prepTime": 30,
-      "cookTime": 15
+      "cookingTime": 45
     },
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
 ]
 ```
 
-#### Remove Recipe from Favorites
-```
-DELETE /api/favorites/:recipeId
-Authorization: Bearer <token>
-
-Response: 200 OK
-```
-
-#### Check if Recipe is Favorited
-```
-GET /api/favorites/check/:recipeId
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "isFavorite": true
-}
-```
-
 ---
 
 ### ⭐ Recipe Ratings
 
-**Authentication Required** ✅
-
-#### Rate a Recipe (1-5 stars)
+#### Rate / Update a Recipe Rating (PROTECTED)
 ```
-POST /api/ratings
+POST /api/recipes/:id/rate
 Authorization: Bearer <token>
 Content-Type: application/json
 
 Body:
 {
-  "recipeId": "507f1f77bcf86cd799439011",
-  "rating": 5
+  "rating": 5   // integer 1–5
 }
 
 Response: 201 Created
@@ -1008,83 +1332,36 @@ Response: 201 Created
   "rating": 5,
   "createdAt": "2024-01-01T00:00:00.000Z"
 }
+
+Note: If the user has already rated this recipe, the existing rating is updated (upsert).
 ```
 
-#### Update Recipe Rating
+#### Get All Ratings for a Recipe (PUBLIC)
 ```
-PATCH /api/ratings
-Authorization: Bearer <token>
-Content-Type: application/json
-
-Body:
-{
-  "recipeId": "507f1f77bcf86cd799439011",
-  "rating": 4
-}
-
-Response: 200 OK
-{
-  "id": "...",
-  "userId": "...",
-  "recipeId": "...",
-  "rating": 4,
-  "updatedAt": "2024-01-01T00:00:00.000Z"
-}
-```
-
-#### Get User's Rating for a Recipe
-```
-GET /api/ratings/:recipeId
-Authorization: Bearer <token>
-
-Response: 200 OK
-{
-  "id": "...",
-  "userId": "...",
-  "recipeId": "...",
-  "rating": 5,
-  "createdAt": "2024-01-01T00:00:00.000Z"
-}
-
-Response: 404 Not Found (if user hasn't rated the recipe)
-```
-
-#### Get Recipe Average Rating
-```
-GET /api/ratings/:recipeId/average
+GET /api/recipes/:id/ratings
 
 Response: 200 OK
 {
   "recipeId": "...",
   "averageRating": 4.5,
-  "totalRatings": 12
+  "totalRatings": 12,
+  "ratings": [...]
 }
-```
-
-#### Delete Recipe Rating
-```
-DELETE /api/ratings/:recipeId
-Authorization: Bearer <token>
-
-Response: 200 OK
 ```
 
 ---
 
 ### 💬 Recipe Comments
 
-**Authentication Required** ✅
-
-#### Add Comment to Recipe
+#### Add Comment to Recipe (PROTECTED)
 ```
-POST /api/comments
+POST /api/recipes/:id/comments
 Authorization: Bearer <token>
 Content-Type: application/json
 
 Body:
 {
-  "recipeId": "507f1f77bcf86cd799439011",
-  "text": "This recipe is amazing! Made it last night."
+  "text": "This recipe is amazing! Made it last night."  // max 1000 characters
 }
 
 Response: 201 Created
@@ -1097,21 +1374,24 @@ Response: 201 Created
 }
 ```
 
-#### Get Comments for a Recipe
+#### Get Comments for a Recipe (PUBLIC)
 ```
-GET /api/comments/:recipeId
+GET /api/recipes/:id/comments
 
 Response: 200 OK
-[
-  {
-    "id": "...",
-    "recipeId": "...",
-    "userId": "...",
-    "userEmail": "user@example.com",
-    "text": "This recipe is amazing!",
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
-]
+{
+  "recipeId": "...",
+  "totalComments": 3,
+  "comments": [
+    {
+      "id": "...",
+      "recipeId": "...",
+      "userId": "...",
+      "text": "This recipe is amazing!",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
 ```
 
 #### Delete Comment (PROTECTED - Author Only)
@@ -1120,6 +1400,9 @@ DELETE /api/comments/:id
 Authorization: Bearer <token>
 
 Response: 200 OK
+{
+  "message": "Comment deleted successfully"
+}
 
 Note: Only the comment author can delete their own comments.
 Returns 403 Forbidden if attempting to delete another user's comment.
@@ -1127,30 +1410,46 @@ Returns 403 Forbidden if attempting to delete another user's comment.
 
 ---
 
-### 📸 Recipe Image Uploads
+### 📸 Image Uploads
 
-**Authentication Required** ✅
+No authentication required.
 
 #### Upload Recipe Image
 ```
 POST /api/uploads/recipe-image
-Authorization: Bearer <token>
 Content-Type: multipart/form-data
 
 Form Data:
-  - image: File (max 5MB, types: image/jpeg, image/png, image/gif)
+  - file: File (max 5 MB, types: image/jpeg, image/jpg, image/png, image/gif, image/webp)
 
-Response: 201 Created
+Response: 200 OK
 {
-  "imageUrl": "http://localhost:3000/uploads/recipes/abc-123-uuid.jpg"
+  "url": "/uploads/recipes/abc-123-uuid.jpg"
 }
 
 Errors:
-- 400 Bad Request: "No image file provided" or "Invalid file type"
-- 400 Bad Request: File too large (>5MB)
+- 400 Bad Request: "No file uploaded"
+- 400 Bad Request: "Only image files are allowed (jpeg, jpg, png, gif, webp)"
+- 400 Bad Request: File too large (> 5 MB)
 ```
 
-**Note:** Images are stored in `./uploads/recipes/` directory and served as static files at `/uploads/recipes/`.
+**Note:** Recipe images are stored in `./uploads/recipes/` and served as static files at `/uploads/recipes/<filename>`.
+
+#### Upload Meal Image
+```
+POST /api/uploads/images
+Content-Type: multipart/form-data
+
+Form Data:
+  - image: File (max 5 MB, types: image/jpeg, image/jpg, image/png, image/gif, image/webp)
+
+Response: 200 OK
+{
+  "url": "/uploads/images/abc-123-uuid.jpg"
+}
+```
+
+**Note:** Meal images are stored in `./uploads/images/` and served at `/uploads/images/<filename>`.
 
 ---
 
@@ -1168,24 +1467,24 @@ Response: 200 OK
   {
     "id": "...",
     "userId": "...",
-    "itemName": "Spaghetti",
-    "quantity": "400g",
-    "category": "Pasta",
-    "isChecked": false,
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "name": "Spaghetti",
+    "quantity": 400,
+    "unit": "g",
+    "checked": false,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "...",
     "userId": "...",
-    "itemName": "Eggs",
-    "quantity": "12",
-    "category": "Dairy",
-    "isChecked": true,
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "name": "Eggs",
+    "quantity": 12,
+    "unit": "pieces",
+    "checked": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   }
 ]
-
-Note: Items are sorted with unchecked items first, then by creation date.
 ```
 
 #### Add Item to Shopping List
@@ -1196,35 +1495,37 @@ Content-Type: application/json
 
 Body:
 {
-  "itemName": "Parmesan Cheese",
-  "quantity": "200g",
-  "category": "Dairy"
+  "name": "Parmesan Cheese",
+  "quantity": 200,
+  "unit": "g",
+  "checked": false   // optional, default false
 }
 
 Response: 201 Created
 {
   "id": "...",
   "userId": "...",
-  "itemName": "Parmesan Cheese",
-  "quantity": "200g",
-  "category": "Dairy",
-  "isChecked": false,
-  "createdAt": "2024-01-01T00:00:00.000Z"
+  "name": "Parmesan Cheese",
+  "quantity": 200,
+  "unit": "g",
+  "checked": false,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
 }
 ```
 
 #### Update Shopping List Item
 ```
-PATCH /api/shopping-list/:id
+PUT /api/shopping-list/:id
 Authorization: Bearer <token>
 Content-Type: application/json
 
 Body (all fields optional):
 {
-  "itemName": "Fresh Parmesan Cheese",
-  "quantity": "250g",
-  "category": "Dairy",
-  "isChecked": true
+  "name": "Fresh Parmesan Cheese",
+  "quantity": 250,
+  "unit": "g",
+  "checked": true
 }
 
 Response: 200 OK
@@ -1237,6 +1538,9 @@ DELETE /api/shopping-list/:id
 Authorization: Bearer <token>
 
 Response: 200 OK
+{
+  "message": "Shopping list item deleted successfully"
+}
 ```
 
 #### Get Shopping List Stats
@@ -1246,19 +1550,20 @@ Authorization: Bearer <token>
 
 Response: 200 OK
 {
-  "totalItems": 10,
-  "checkedItems": 3,
-  "uncheckedItems": 7
+  "total": 10,
+  "checked": 3,
+  "unchecked": 7
 }
 ```
 
 #### Clear All Checked Items
 ```
-DELETE /api/shopping-list/checked
+DELETE /api/shopping-list
 Authorization: Bearer <token>
 
 Response: 200 OK
 {
+  "message": "Checked items cleared successfully",
   "deletedCount": 3
 }
 ```
@@ -1267,7 +1572,9 @@ Response: 200 OK
 
 ### 🏷️ Recipe Categories
 
-#### Get All Categories (PUBLIC)
+All category endpoints are **PUBLIC**.
+
+#### Get All Categories
 ```
 GET /api/recipe-categories
 
@@ -1276,14 +1583,12 @@ Response: 200 OK
   {
     "id": "...",
     "name": "Italian",
-    "description": "Traditional Italian cuisine",
     "icon": "🇮🇹",
     "createdAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "...",
     "name": "Mexican",
-    "description": "Authentic Mexican dishes",
     "icon": "🌮",
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
@@ -1292,7 +1597,7 @@ Response: 200 OK
 Note: Categories are sorted alphabetically by name.
 ```
 
-#### Create Category (PUBLIC)
+#### Create Category
 ```
 POST /api/recipe-categories
 Content-Type: application/json
@@ -1300,7 +1605,6 @@ Content-Type: application/json
 Body:
 {
   "name": "Japanese",
-  "description": "Traditional Japanese cuisine",
   "icon": "🍣"
 }
 
@@ -1308,7 +1612,6 @@ Response: 201 Created
 {
   "id": "...",
   "name": "Japanese",
-  "description": "Traditional Japanese cuisine",
   "icon": "🍣",
   "createdAt": "2024-01-01T00:00:00.000Z"
 }
@@ -1317,11 +1620,132 @@ Errors:
 - 409 Conflict: "Category with this name already exists" (if duplicate name)
 ```
 
-#### Delete Category (PUBLIC)
+#### Delete Category
 ```
 DELETE /api/recipe-categories/:id
 
 Response: 200 OK
+{
+  "message": "Category deleted successfully"
+}
+```
+
+---
+
+### 🍽️ Meals
+
+All meal endpoints are **PUBLIC** (no authentication required).
+
+#### Get All Meals
+```
+GET /api/meals
+
+Response: 200 OK
+[
+  {
+    "id": "...",
+    "title": "Spaghetti Bolognese",
+    "slug": "spaghetti-bolognese",
+    "image": "/uploads/images/uuid.jpg",
+    "summary": "A classic Italian pasta dish...",
+    "instructions": "Step 1...",
+    "creator": "Chef John",
+    "creator_email": "john@example.com",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]
+```
+
+#### Get Meal by Slug
+```
+GET /api/meals/:slug
+Example: GET /api/meals/spaghetti-bolognese
+
+Response: 200 OK
+{
+  "id": "...",
+  "title": "Spaghetti Bolognese",
+  "slug": "spaghetti-bolognese",
+  "image": "/uploads/images/uuid.jpg",
+  "summary": "A classic Italian pasta dish...",
+  "instructions": "Step 1...",
+  "creator": "Chef John",
+  "creator_email": "john@example.com",
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+#### Create Meal
+```
+POST /api/meals
+Content-Type: application/json
+
+Body:
+{
+  "name": "Chef John",
+  "email": "john@example.com",
+  "title": "Spaghetti Bolognese",
+  "summary": "A classic Italian pasta dish with rich meat sauce.",
+  "instructions": "1. Brown meat. 2. Add tomato sauce. 3. Serve over pasta.",
+  "image": "/uploads/images/uuid.jpg"
+}
+
+Response: 201 Created
+{...meal object...}
+```
+
+---
+
+## curl Examples
+
+### Register a new user
+```bash
+curl -s -X POST http://localhost:3000/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","password":"password123","firstName":"John","lastName":"Doe"}'
+```
+
+### Login and capture the token
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@example.com","password":"password123"}' \
+  | jq -r '.access_token')
+echo "Token: $TOKEN"
+```
+
+### Make a protected request (get current user)
+```bash
+curl -s http://localhost:3000/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Logout (blacklist the token)
+```bash
+curl -s -X POST http://localhost:3000/api/auth/logout \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Subscribe to live game scores (SSE)
+```bash
+curl -N http://localhost:3000/api/games/scores \
+  -H 'Accept: text/event-stream'
+# Outputs a new score line every ~2 seconds:
+# data: {"game":{"lakers":3,"denver":2}}
+# data: {"game":{"lakers":5,"denver":6}}
+# ...
+# Press Ctrl+C to stop
+```
+
+### Stop the score stream
+```bash
+curl -s -X POST http://localhost:3000/api/games/stop
+```
+
+### Upload a recipe image
+```bash
+curl -s -X POST http://localhost:3000/api/uploads/recipe-image \
+  -F 'file=@/path/to/image.jpg'
 ```
 
 ---
@@ -1675,7 +2099,7 @@ export const recipeService = {
 
   // Update recipe
   updateRecipe: async (id, updates) => {
-    const response = await apiClient.patch(`/recipes/${id}`, updates);
+    const response = await apiClient.put(`/recipes/${id}`, updates);
     return response.data;
   },
 
@@ -1685,10 +2109,10 @@ export const recipeService = {
     return response.data;
   },
 
-  // Upload recipe image
+  // Upload recipe image (form field name: 'file')
   uploadRecipeImage: async (imageFile) => {
     const formData = new FormData();
-    formData.append('image', imageFile);
+    formData.append('file', imageFile);
     const response = await apiClient.post('/uploads/recipe-image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -1708,25 +2132,19 @@ import apiClient from './authService';
 export const favoritesService = {
   // Get user's favorites
   getFavorites: async () => {
-    const response = await apiClient.get('/favorites');
+    const response = await apiClient.get('/users/me/favorites');
     return response.data;
   },
 
   // Add to favorites
   addToFavorites: async (recipeId) => {
-    const response = await apiClient.post('/favorites', { recipeId });
+    const response = await apiClient.post(`/recipes/${recipeId}/favorite`);
     return response.data;
   },
 
   // Remove from favorites
   removeFromFavorites: async (recipeId) => {
-    const response = await apiClient.delete(`/favorites/${recipeId}`);
-    return response.data;
-  },
-
-  // Check if recipe is favorited
-  checkFavorite: async (recipeId) => {
-    const response = await apiClient.get(`/favorites/check/${recipeId}`);
+    const response = await apiClient.delete(`/recipes/${recipeId}/favorite`);
     return response.data;
   },
 };
@@ -1739,33 +2157,15 @@ export const favoritesService = {
 import apiClient from './authService';
 
 export const ratingsService = {
-  // Rate a recipe
+  // Rate (or update rating for) a recipe
   rateRecipe: async (recipeId, rating) => {
-    const response = await apiClient.post('/ratings', { recipeId, rating });
+    const response = await apiClient.post(`/recipes/${recipeId}/rate`, { rating });
     return response.data;
   },
 
-  // Update rating
-  updateRating: async (recipeId, rating) => {
-    const response = await apiClient.patch('/ratings', { recipeId, rating });
-    return response.data;
-  },
-
-  // Get user's rating for a recipe
-  getUserRating: async (recipeId) => {
-    const response = await apiClient.get(`/ratings/${recipeId}`);
-    return response.data;
-  },
-
-  // Get average rating
-  getAverageRating: async (recipeId) => {
-    const response = await apiClient.get(`/ratings/${recipeId}/average`);
-    return response.data;
-  },
-
-  // Delete rating
-  deleteRating: async (recipeId) => {
-    const response = await apiClient.delete(`/ratings/${recipeId}`);
+  // Get all ratings for a recipe (public)
+  getRecipeRatings: async (recipeId) => {
+    const response = await apiClient.get(`/recipes/${recipeId}/ratings`);
     return response.data;
   },
 };
@@ -1790,9 +2190,9 @@ export const shoppingListService = {
     return response.data;
   },
 
-  // Update item
+  // Update item (PUT, not PATCH)
   updateItem: async (id, updates) => {
-    const response = await apiClient.patch(`/shopping-list/${id}`, updates);
+    const response = await apiClient.put(`/shopping-list/${id}`, updates);
     return response.data;
   },
 
@@ -1808,9 +2208,9 @@ export const shoppingListService = {
     return response.data;
   },
 
-  // Clear checked items
+  // Clear all checked items (DELETE /shopping-list with no path segment)
   clearChecked: async () => {
-    const response = await apiClient.delete('/shopping-list/checked');
+    const response = await apiClient.delete('/shopping-list');
     return response.data;
   },
 };
@@ -1935,7 +2335,7 @@ export const environment = {
 {
   _id: ObjectId,
   email: string (unique),
-  password: string (hashed),
+  password: string (hashed with bcrypt),
   firstName: string,
   lastName: string,
   fcmToken?: string,
@@ -1946,14 +2346,25 @@ export const environment = {
 
 ### Employee Schema
 ```typescript
+// Collection: employeesdata
 {
   _id: ObjectId,
-  name: string,
-  position: string,
-  department: string,
-  salary: number,
-  createdAt: Date,
-  updatedAt: Date
+  id: string (unique),
+  firstName: string,
+  lastName: string,
+  email: string (unique),
+  employee_name?: string,
+  employee_age?: number,
+  employee_salary?: number,
+  contactNumber?: string,
+  age?: number,
+  dob?: string,
+  salary?: number,
+  address?: string,
+  S_No?: number,
+  surname?: string,
+  created_time: Date,  // timestamps use custom names
+  updated_time: Date
 }
 ```
 
@@ -2008,10 +2419,13 @@ export const environment = {
 {
   _id: ObjectId,
   userId: ObjectId (ref: User),
-  street: string,
+  fullName: string,
+  phone: string,
+  addressLine1: string,
+  addressLine2?: string,
   city: string,
   state: string,
-  zipCode: string,
+  pincode: string,
   country: string,
   isDefault: boolean,
   createdAt: Date,
@@ -2019,15 +2433,62 @@ export const environment = {
 }
 ```
 
-### Exercise Schema
+### AvailableExercise Schema
 ```typescript
+// Collection: availableExercises
+{
+  _id: ObjectId,
+  name: string,
+  duration: number,   // seconds
+  calories: number,
+  category: string ('Cardio' | 'Strength' | 'Flexibility' | 'HIIT' | 'Other', default: 'Other'),
+  difficulty: string ('Beginner' | 'Intermediate' | 'Advanced', default: 'Beginner'),
+  userId: ObjectId | null (ref: User),  // null for global exercises
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### FinishedExercise Schema
+```typescript
+// Collection: finishedExercises
 {
   _id: ObjectId,
   userId: ObjectId (ref: User),
-  exerciseId: ObjectId (ref: AvailableExercise),
-  duration: number (seconds),
-  caloriesBurned: number,
+  name: string,
+  duration: number,   // seconds
+  calories: number,
   date: Date,
+  state: string ('completed' | 'cancelled'),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### WorkoutPlan Schema
+```typescript
+// Collection: workoutPlans
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: User),
+  name: string,
+  exerciseIds: ObjectId[] (ref: AvailableExercise),
+  isTemplate: boolean (default: false),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Goal Schema
+```typescript
+// Collection: goals
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: User),
+  weekStart: Date,
+  targetSessions: number | null,
+  targetCalories: number | null,
+  targetMinutes: number | null,
   createdAt: Date,
   updatedAt: Date
 }
@@ -2055,6 +2516,22 @@ export const environment = {
 }
 ```
 
+### Meal Schema
+```typescript
+{
+  _id: ObjectId,
+  title: string,
+  slug: string (unique),
+  image: string,
+  summary: string,
+  instructions: string,
+  creator: string,
+  creator_email: string,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 ### Recipe Schema
 ```typescript
 {
@@ -2063,17 +2540,16 @@ export const environment = {
   description: string,
   ingredients: [{
     name: string,
-    quantity: string,
+    quantity: number,
     unit: string
   }],
-  instructions: string,
-  prepTime: number (minutes),
-  cookTime: number (minutes),
+  instructions: string[],      // array of step strings
+  cookingTime: number,         // total time in minutes
   servings: number,
   difficulty: string ('easy' | 'medium' | 'hard'),
   category: string,
   imageUrl?: string,
-  authorId: ObjectId (ref: User),
+  authorId: string,
   createdAt: Date,
   updatedAt: Date
 }
@@ -2110,33 +2586,32 @@ export const environment = {
   _id: ObjectId,
   recipeId: ObjectId (ref: Recipe),
   userId: ObjectId (ref: User),
-  text: string,
+  text: string (max 1000 chars),
   createdAt: Date,
   updatedAt: Date
 }
 ```
 
-### Shopping List Item Schema
+### ShoppingList Schema
 ```typescript
 {
   _id: ObjectId,
-  userId: ObjectId (ref: User),
-  itemName: string,
-  quantity?: string,
-  category?: string,
-  isChecked: boolean (default: false),
+  userId: string,
+  name: string,
+  quantity: number,
+  unit: string,
+  checked: boolean (default: false),
   createdAt: Date,
   updatedAt: Date
 }
 ```
 
-### Recipe Category Schema
+### RecipeCategory Schema
 ```typescript
 {
   _id: ObjectId,
   name: string (unique),
-  description?: string,
-  icon?: string,
+  icon: string,
   createdAt: Date,
   updatedAt: Date
 }
@@ -2144,33 +2619,51 @@ export const environment = {
 
 ---
 
+## Environment & Config Notes
+
+Create a `.env` file at the root of the project (see `.env.example` for reference):
+
+```env
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/test
+MONGODB_ESTORE_URI=mongodb://localhost:27017/estore
+MONGODB_RECIPES_URI=mongodb://localhost:27017/recipes
+MONGODB_MEALS_URI=mongodb://localhost:27017/meals
+
+# JWT Configuration
+# IMPORTANT: Change this to a strong random string in production
+JWT_SECRET=your-super-secure-secret-key-change-this-in-production
+JWT_EXPIRATION=24h
+
+# Server Configuration
+PORT=3000
+
+# Upload Configuration (optional)
+MAX_FILE_SIZE=5242880   # 5 MB in bytes
+UPLOAD_PATH=./uploads/recipes
+```
+
+**Key Notes:**
+- JWT tokens expire after `JWT_EXPIRATION` (default `24h`). After expiry, re-login is required.
+- The `test` database is used for auth, employees, exercises, goals, workout plans, threads, messages, and bot features.
+- The `estore` database is used for products, cart, orders, and addresses.
+- The `recipes` database is used for recipes, favorites, ratings, comments, shopping lists, and recipe categories.
+- The `meals` database is used for the meal catalog.
+- Uploaded files are stored locally in `./uploads/` and served as static assets.
+
+---
+
 ## Improvements & Recommendations
 
 ### 🔒 Security Enhancements
 
-1. **Environment Variables:**
-   - Move JWT secret to `.env` file
-   - Create `.env.example` template
-   ```env
-   MONGODB_URI=mongodb://localhost:27017/test
-   MONGODB_ESTORE_URI=mongodb://localhost:27017/estore
-   JWT_SECRET=your-super-secure-secret-key-here
-   JWT_EXPIRATION=24h
-   PORT=3000
-   ```
-
-2. **JWT Token Expiration:**
-   - Currently no expiration is set
-   - Add token expiration (e.g., 24h, 7d)
-   - Implement refresh tokens for better security
-
-3. **Rate Limiting:**
-   - Add `@nestjs/throttler` to prevent brute force attacks
+1. **Rate Limiting:**
+   - Add `@nestjs/throttler` to prevent brute force attacks on auth endpoints
    ```bash
    npm install @nestjs/throttler
    ```
 
-4. **CORS Configuration:**
+2. **CORS Configuration:**
    - Currently allows all origins (`app.enableCors()`)
    - Restrict to specific frontend domains in production
    ```typescript
@@ -2180,19 +2673,22 @@ export const environment = {
    });
    ```
 
-5. **Helmet.js:**
+3. **Helmet.js:**
    - Add security headers
    ```bash
    npm install helmet
    ```
 
-6. **Input Sanitization:**
+4. **Input Sanitization:**
    - Add input sanitization for MongoDB queries to prevent NoSQL injection
+
+5. **Auth Guards on Recipe CRUD:**
+   - Currently all recipe create/update/delete endpoints are public; consider adding `JwtAuthGuard` to protect them
 
 ### 📝 Documentation Improvements
 
 1. **Swagger Annotations:**
-   - Add more detailed Swagger decorators for better API documentation
+   - Add more detailed Swagger decorators for better Swagger UI documentation
    ```typescript
    @ApiTags('products')
    @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
@@ -2223,27 +2719,13 @@ export const environment = {
    - Log all authentication attempts
    - Log all errors with context
 
-3. **Pagination:**
-   - Add pagination to list endpoints (products, orders, etc.)
-   ```typescript
+3. **Refresh Tokens:**
+   - Implement short-lived access tokens + long-lived refresh tokens for better security
+
+4. **Pagination:**
+   - Add pagination to remaining list endpoints (employees, orders, products)
+   ```
    GET /api/products?page=1&limit=20
-   ```
-
-4. **Filtering & Sorting:**
-   - Add query parameters for filtering
-   ```typescript
-   GET /api/orders?status=pending&sortBy=date&order=desc
-   ```
-
-5. **Response Standardization:**
-   - Wrap all responses in standard format
-   ```typescript
-   {
-     success: true,
-     data: {...},
-     message: "Success",
-     timestamp: "2024-01-01T00:00:00.000Z"
-   }
    ```
 
 ### 🧪 Testing
@@ -2259,85 +2741,37 @@ export const environment = {
 
 3. **Integration Tests:**
    - Test database operations
-   - Test external API integrations (if any)
 
 ### 🚀 Performance Optimizations
 
-1. **Database Indexes:**
-   - Add indexes on frequently queried fields
-   ```typescript
-   @Schema({ timestamps: true })
-   export class Product {
-     @Prop({ index: true })
-     category: string;
+1. **Caching:**
+   - Implement Redis caching for frequently accessed data (e.g., product lists)
 
-     @Prop({ index: 'text' })
-     name: string;
-   }
-   ```
-
-2. **Caching:**
-   - Implement Redis caching for frequently accessed data
-   - Cache product lists
-   - Cache user sessions
-
-3. **Database Query Optimization:**
+2. **Database Query Optimization:**
    - Use `lean()` for read-only queries
    - Use `select()` to fetch only needed fields
-   - Implement virtual populate for better performance
-
-### 📊 Monitoring & Observability
-
-1. **Health Check Endpoint:**
-   ```typescript
-   GET /api/health
-   Response: { status: "ok", database: "connected", uptime: 12345 }
-   ```
-
-2. **Metrics:**
-   - Add request duration tracking
-   - Track failed login attempts
-   - Monitor database query performance
 
 ### 🔄 Additional Features
 
-1. **Password Reset Flow:**
-   - Add forgotten password endpoint
-   - Implement email verification
-   - Add password reset token functionality
-
-2. **Email Notifications:**
+1. **Email Notifications:**
    - Order confirmation emails
-   - Password reset emails
+   - Password reset emails (the forgot-password endpoint is implemented; wire up email delivery)
    - Implement with Nodemailer or SendGrid
 
-3. **File Uploads:**
-   - Add multer for file uploads
-   - Support product image uploads
-   - Support user profile pictures
-
-4. **Payment Integration:**
+2. **Payment Integration:**
    - Integrate Stripe/PayPal for actual payment processing
    - Add payment status tracking
 
-5. **Inventory Management:**
+3. **Inventory Management:**
    - Add stock tracking to products
    - Prevent ordering out-of-stock items
-   - Low stock notifications
 
-6. **Order Status Updates:**
+4. **Order Status Updates:**
    - Add ability to update order status
    - Implement order tracking
-   - Send status update notifications
 
-7. **Reviews & Ratings:**
-   - Add product reviews
-   - Implement rating system
-   - Average rating calculation
-
-8. **Wishlist:**
-   - Add wishlist functionality
-   - Allow users to save products for later
+5. **Product Reviews:**
+   - Add product reviews and rating system
 
 ### 🐳 DevOps
 
@@ -2346,13 +2780,10 @@ export const environment = {
    - Create docker-compose.yml for easy setup
 
 2. **CI/CD:**
-   - Set up GitHub Actions or GitLab CI
-   - Automated testing on push
-   - Automated deployment
+   - Set up GitHub Actions for automated testing and deployment
 
 3. **Environment Management:**
    - Separate configs for dev/staging/production
-   - Use environment-specific database connections
 
 ---
 
@@ -2366,17 +2797,17 @@ export const environment = {
 - [ ] Implement login/register pages
 - [ ] Store JWT token in localStorage (or httpOnly cookies for better security)
 - [ ] Handle 401 responses globally (redirect to login)
-- [ ] Implement logout functionality
+- [ ] Implement logout functionality (calls `POST /api/auth/logout` to blacklist token)
 - [ ] Create service files for each API module (products, cart, orders, etc.)
 - [ ] Test authentication flow
 - [ ] Implement error handling UI (toasts/notifications)
 - [ ] Test all protected routes
 - [ ] Implement loading states during API calls
 - [ ] Add API call retry logic (optional)
-- [ ] Set up SSE for real-time features (games scores)
-- [ ] Implement recipe image upload with multipart/form-data
+- [ ] Set up SSE for real-time features (games scores) using `EventSource`
+- [ ] Implement recipe image upload with multipart/form-data (form field: `file`)
 - [ ] Add recipe search and filtering
-- [ ] Implement favorites and ratings UI
+- [ ] Implement favorites and ratings UI (use `/api/recipes/:id/favorite` and `/api/recipes/:id/rate`)
 - [ ] Create shopping list management interface
 
 ---
@@ -2386,38 +2817,36 @@ export const environment = {
 ### Key Features Implemented:
 
 1. **Recipe CRUD Operations**
-   - Create, read, update, delete recipes
-   - Author-only edit/delete permissions
-   - Rich recipe data with ingredients, instructions, prep/cook times
+   - Create, read, update, delete recipes (all routes currently public)
+   - Rich recipe data with ingredients, instructions, cooking time, servings, difficulty
 
 2. **Advanced Search & Filtering**
-   - Full-text search across titles, descriptions, and ingredients
-   - Filter by category, difficulty, and prep time range
+   - Full-text search across titles and descriptions
+   - Filter by category, difficulty, and authorId
    - Pagination support for large datasets
    - MongoDB text indexes for optimized search performance
 
 3. **Social Features**
-   - User favorites with quick add/remove
-   - 1-5 star rating system with average calculations
+   - User favorites: add/remove via `POST/DELETE /api/recipes/:id/favorite`
+   - 1–5 star rating system with automatic upsert via `POST /api/recipes/:id/rate`
    - Comment system with author-only deletion
    - Automatic rating aggregation on recipe queries
 
 4. **Media Management**
-   - Recipe image uploads (up to 5MB)
-   - File type validation (JPEG, PNG, GIF)
-   - Static file serving at `/uploads/recipes/`
+   - Recipe image uploads (up to 5 MB, form field: `file`)
+   - Meal image uploads (up to 5 MB, form field: `image`)
+   - Allowed types: JPEG, JPG, PNG, GIF, WebP
+   - Static file serving at `/uploads/recipes/` and `/uploads/images/`
    - UUID-based unique filenames
 
 5. **Shopping List**
-   - Personal shopping lists per user
-   - Item categorization and quantity tracking
+   - Personal shopping lists per user (fields: `name`, `quantity` (number), `unit`, `checked`)
    - Check/uncheck items
-   - Bulk delete checked items
-   - Shopping statistics (total, checked, unchecked)
+   - Bulk delete checked items via `DELETE /api/shopping-list`
+   - Shopping statistics: `{ total, checked, unchecked }`
 
 6. **Category Management**
-   - Organize recipes by cuisine/type
-   - Visual icons for categories
+   - Organize recipes by cuisine/type (fields: `name`, `icon`)
    - Alphabetical sorting
    - Unique category names with conflict detection
 
@@ -2425,15 +2854,15 @@ export const environment = {
 
 - **Recipe Schema**: 5 indexes (text search, category, difficulty, authorId, createdAt)
 - **Favorites/Ratings**: Compound unique indexes to prevent duplicates
-- **Shopping List**: User-based isolation with efficient sorting
-- Uses `estore` MongoDB database connection
+- **Shopping List**: User-based isolation with efficient sorting indexes
+- Recipes, favorites, ratings, comments, shopping list use the `recipes` MongoDB database
 
 ---
 
 ## Support & Contact
 
 For questions or issues with the API:
-- Check Swagger documentation: `http://localhost:3000/api`
+- Check Swagger documentation: `http://localhost:3000/docs`
 - Review this documentation
 - Check error messages in API responses
 - Verify authentication token is being sent correctly
@@ -2441,6 +2870,7 @@ For questions or issues with the API:
 
 ---
 
-**Last Updated:** March 2026
+**Last Updated:** May 2026
 **Version:** 1.0.0
 **API Base URL:** `http://localhost:3000/api`
+**Swagger UI:** `http://localhost:3000/docs`

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsEnum } from 'class-validator';
 
 export class CreateAvailableExerciseDto {
   @IsString()
@@ -12,4 +12,12 @@ export class CreateAvailableExerciseDto {
   @IsNumber()
   @IsNotEmpty()
   calories: number;
+
+  @IsOptional()
+  @IsEnum(['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Other'])
+  category?: string;
+
+  @IsOptional()
+  @IsEnum(['Beginner', 'Intermediate', 'Advanced'])
+  difficulty?: string;
 }

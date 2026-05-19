@@ -8,7 +8,15 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { recipeImageStorage, imageFileFilter, MAX_FILE_SIZE, getFileUrl, MulterFile } from '../utils/file-upload.util';
+import {
+  recipeImageStorage,
+  mealImageStorage,
+  imageFileFilter,
+  MAX_FILE_SIZE,
+  getFileUrl,
+  getMealImageUrl,
+  MulterFile,
+} from '../utils/file-upload.util';
 import { FileUploadResponseDto } from '../dto/file-upload-response.dto';
 
 @Controller('uploads')
@@ -33,6 +41,29 @@ export class UploadsController {
 
     return {
       url: getFileUrl(file.filename),
+    };
+  }
+
+  @Post('images')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: mealImageStorage,
+      fileFilter: imageFileFilter,
+      limits: {
+        fileSize: MAX_FILE_SIZE,
+      },
+    })
+  )
+  uploadMealImage(
+    @UploadedFile() file: MulterFile,
+  ): FileUploadResponseDto {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return {
+      url: getMealImageUrl(file.filename),
     };
   }
 }

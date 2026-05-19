@@ -17,6 +17,21 @@ export class AvailableExercise {
 
   @Prop({ required: true })
   calories: number;
+
+  @Prop({
+    enum: ['Cardio', 'Strength', 'Flexibility', 'HIIT', 'Other'],
+    default: 'Other',
+  })
+  category: string;
+
+  @Prop({
+    enum: ['Beginner', 'Intermediate', 'Advanced'],
+    default: 'Beginner',
+  })
+  difficulty: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  userId: Types.ObjectId | null;
 }
 
 export const AvailableExerciseSchema = SchemaFactory.createForClass(AvailableExercise);

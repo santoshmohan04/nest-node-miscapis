@@ -1,20 +1,21 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
 import { GoalsService } from '../service/goals.service';
-import { UpdateGoalsDto } from '../dto/goal.dto';
+import { CreateGoalDto } from '../dto/goal.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('goals')
-@UseGuards(JwtAuthGuard)
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
 
-  @Get('current')
-  async getCurrentGoals(@Request() req: any) {
-    return this.goalsService.getCurrentGoals(req.user.userId);
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  async upsertGoal(@Request() req, @Body() createGoalDto: CreateGoalDto) {
+    return this.goalsService.upsertGoal(req.user.userId, createGoalDto);
   }
 
-  @Post('current')
-  async updateCurrentGoals(@Request() req: any, @Body() goalsData: UpdateGoalsDto) {
-    return this.goalsService.updateCurrentGoals(req.user.userId, goalsData);
+  @UseGuards(JwtAuthGuard)
+  @Get('current')
+  async getCurrentGoal(@Request() req) {
+    return this.goalsService.getCurrentGoal(req.user.userId);
   }
 }
